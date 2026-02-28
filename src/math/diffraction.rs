@@ -359,3 +359,26 @@ pub fn diffraction_loss(
     let a_d_db = w * a_se_db + (1.0 - w) * a_k_db + a_fo_db;
     a_d_db
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_knife_edge_diffraction_via_fresnel() {
+        // `fresnel_integral` takes v^2 (v squared).
+        // Negative v^2 mathematically impossible in physical reality, so passing positive values.
+
+        let at_zero = fresnel_integral(0.0);
+        assert!(
+            (at_zero - 6.02).abs() < 0.1,
+            "v=0 should be precisely 6.02dB line of sight grazing"
+        );
+
+        let large_v2 = fresnel_integral(100.0); // v = 10 -> v^2 = 100
+        assert!(
+            large_v2 > 20.0,
+            "Large obstruction should cause high diffraction loss"
+        );
+    }
+}

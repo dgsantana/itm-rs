@@ -157,7 +157,7 @@ pub(crate) fn longley_rice(
     }
 
     let mut a_ref: f64;
-    let mut propmode = 0i32;
+    let propmode: i32;
 
     if d < d_sml {
         // small path / line-of-sight region

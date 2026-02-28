@@ -15,7 +15,7 @@ use num_complex::Complex;
 /// # Arguments
 ///
 /// * `d` - Distance between the two antennas in meters. Must be positive.
-/// * `f` - Frequency of the signal in Hz. Must be positive.
+/// * `f` - Frequency of the signal in MHz. Must be positive.
 ///
 /// # Returns
 ///
@@ -32,7 +32,7 @@ use num_complex::Complex;
 /// where:
 /// - L = free space loss in dB
 /// - d = distance between antennas in meters (converted to km internally)
-/// - f = frequency of the signal in Hz
+/// - f = frequency of the signal in MHz
 /// - 32.45 = constant derived from the Friis equation constants
 ///
 /// # References
@@ -45,12 +45,12 @@ use num_complex::Complex;
 /// ```
 /// use itm::math::free_space_loss;
 ///
-/// // 1 km distance at 1 GHz
-/// let loss1 = free_space_loss(1000.0, 1e9);
+/// // 1 km distance at 1000 MHz (1 GHz)
+/// let loss1 = free_space_loss(1000.0, 1000.0);
 /// assert!(loss1 > 90.0); // Approximately 92 dB
 ///
 /// // Shorter distance results in less loss
-/// let loss2 = free_space_loss(100.0, 1e9);
+/// let loss2 = free_space_loss(100.0, 1000.0);
 /// assert!(loss2 < loss1);
 /// ```
 pub fn free_space_loss(d: f64, f: f64) -> f64 {
@@ -203,7 +203,6 @@ pub fn line_of_sight_loss(
     if q < 0.25 || q < sin_psi {
         let scale = (sin_psi / q).sqrt();
         r_e *= scale;
-        q = r_e.re.powi(2) + r_e.im.powi(2);
     }
 
     // phase difference delta_phi = wn * 2 * h_e[0] * h_e[1] / d
@@ -225,4 +224,34 @@ pub fn line_of_sight_loss(
 
     // final LOS loss
     w * a_t_db + (1.0 - w) * a_d_db
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_free_space_loss() {
+        // FSPL formula given f_mhz and distance in km
+        // FSPL = 32.44 + 20*log10(f_mhz) + 20*log10(d_km)
+        let f_mhz = 900.0f64;
+        let d_km = 1.0f64;
+        let d_m = d_km * 1000.0f64;
+        let expected_loss = 32.44 + 20.0 * f_mhz.log10() + 20.0 * d_km.log10();
+        let loss = free_space_loss(d_m, f_mhz);
+        assert!(
+            (loss - expected_loss).abs() < 0.1,
+            "FSPL 900MHz @ 1km was {loss} instead of {expected_loss}"
+        );
+
+        let f_mhz = 2400.0f64;
+        let d_km = 10.0f64;
+        let d_m = d_km * 1000.0f64;
+        let expected_loss2 = 32.44 + 20.0 * f_mhz.log10() + 20.0 * d_km.log10();
+        let loss2 = free_space_loss(d_m, f_mhz);
+        assert!(
+            (loss2 - expected_loss2).abs() < 0.1,
+            "FSPL 2400MHz @ 10km was {loss2} instead of {expected_loss2}"
+        );
+    }
 }

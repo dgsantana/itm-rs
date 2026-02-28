@@ -99,44 +99,6 @@ impl Default for IntermediateValues {
     }
 }
 
-impl IntermediateValues {
-    // Compatibility accessors reproducing the previous field-style names.
-    // These are methods (not fields). Call sites in this crate were updated to use the
-    // new snake_case fields directly; external callers can migrate to them as well.
-    #[deprecated(note = "use `d_km` field instead")]
-    pub fn d__km(&self) -> f64 {
-        self.d_km
-    }
-    #[deprecated(note = "use `a_ref_db` field instead")]
-    pub fn A_ref__db(&self) -> f64 {
-        self.a_ref_db
-    }
-    #[deprecated(note = "use `a_fs_db` field instead")]
-    pub fn A_fs__db(&self) -> f64 {
-        self.a_fs_db
-    }
-    #[deprecated(note = "use `delta_h_meter` field instead")]
-    pub fn delta_h__meter(&self) -> f64 {
-        self.delta_h_meter
-    }
-    #[deprecated(note = "use `d_hzn_meter` field instead")]
-    pub fn d_hzn__meter(&self) -> [f64; 2] {
-        self.d_hzn_meter
-    }
-    #[deprecated(note = "use `h_e_meter` field instead")]
-    pub fn h_e__meter(&self) -> [f64; 2] {
-        self.h_e_meter
-    }
-    #[deprecated(note = "use `n_s` field instead")]
-    pub fn N_s(&self) -> f64 {
-        self.n_s
-    }
-    #[deprecated(note = "use `theta_hzn` field instead")]
-    pub fn theta_hzn__compat(&self) -> [f64; 2] {
-        self.theta_hzn
-    }
-}
-
 /// Validate inputs for both AREA and P2P modes.
 ///
 /// Returns `Ok(warnings_mask)` if inputs pass (warnings may be set), or
@@ -598,7 +560,7 @@ mod tests {
             30.0, 20.0, 0, 0, 100.0, 90.0, 5, 301.0, 900.0, 0, 15.0, 0.005, 0, 50.0, 50.0, 50.0,
         );
         assert!(res.is_ok());
-        let (a_db, warnings, inter) = res.unwrap();
+        let (a_db, _warnings, inter) = res.unwrap();
         assert!(a_db.is_finite());
         assert!(inter.a_ref_db.is_finite());
     }

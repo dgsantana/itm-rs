@@ -102,3 +102,21 @@ pub fn h0_function(r: f64, eta_s: f64) -> f64 {
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_h0_function_loss() {
+        let z = h0_function(0.001, 1.0); // R > 0
+        assert!(z > -10.0, "Near zero should have a stable base gain");
+
+        let large = h0_function(100.0, 1.0);
+        assert!(large > 0.0, "H0 should be positive");
+        assert!(large < 1.0, "H0 should be small for large r");
+
+        let medium = h0_function(10.0, 1.0);
+        assert!(medium > large, "H0 must be monotonically decreasing with r");
+    }
+}
