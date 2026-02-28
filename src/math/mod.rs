@@ -28,6 +28,7 @@ pub mod constants;
 pub mod diffraction;
 pub mod height_gain;
 pub mod itm;
+pub mod longley_rice;
 pub mod propagation;
 pub mod scatter;
 pub mod statistics;
@@ -53,5 +54,3 @@ pub use terrain::{
 pub use variability::{Climate, VariabilityMode, curve, variability_loss};
 
 // Re-export crate-internal functions
-pub(crate) use diffraction::knife_edge_diffraction;
-pub(crate) use terrain::linear_least_square_fit;

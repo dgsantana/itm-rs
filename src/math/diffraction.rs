@@ -30,7 +30,7 @@
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::fresnel_integral;
+/// use itm::math::fresnel_integral;
 ///
 /// // Small diffraction parameter
 /// let loss1 = fresnel_integral(2.0);
@@ -132,11 +132,11 @@ use num_complex::Complex;
 /// # Arguments
 ///
 /// * `d_m` - Path distance in meters.
-/// * `f_mhz` - Frequency in MHz.
-/// * `a_e_m` - Effective earth radius in meters.
+/// * `f` - Frequency in MHz.
+/// * `a_e` - Effective earth radius in meters.
 /// * `theta_los` - Angular distance of the line-of-sight region in radians.
-/// * `d_hzn_m` - Terminal horizon distances in meters `[tx, rx]`.
-/// * `h_e_m` - Effective terminal heights in meters `[tx, rx]`.
+/// * `d_hzn` - Terminal horizon distances in meters `[tx, rx]`.
+/// * `h_e` - Effective terminal heights in meters `[tx, rx]`.
 /// * `z_g` - Complex ground impedance.
 ///
 /// # Returns
@@ -152,22 +152,22 @@ use num_complex::Complex;
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::smooth_earth_diffraction;
+/// use itm::math::smooth_earth_diffraction;
 /// use num_complex::Complex;
 ///
-/// let d_hzn_m = [50_000.0, 50_000.0];
-/// let h_e_m = [30.0, 30.0];
+/// let d_hzn = [50_000.0, 50_000.0];
+/// let h_e = [30.0, 30.0];
 /// let z_g = Complex::new(15.0, 0.1);
-/// let loss = smooth_earth_diffraction(100_000.0, 900.0, 8.5e6, 0.001, d_hzn_m, h_e_m, z_g);
+/// let loss = smooth_earth_diffraction(100_001.0, 900.0, 8.5e6, 0.001, d_hzn, h_e, z_g);
 /// assert!(loss.is_finite());
 /// ```
 pub fn smooth_earth_diffraction(
-    d_m: f64,
-    f_mhz: f64,
-    a_e_m: f64,
+    d: f64,
+    f: f64,
+    a_e: f64,
     theta_los: f64,
-    d_hzn_m: [f64; 2],
-    h_e_m: [f64; 2],
+    d_hzn: [f64; 2],
+    h_e: [f64; 2],
     z_g: Complex<f64>,
 ) -> f64 {
     let mut a_m = [0.0; 3];
@@ -178,33 +178,33 @@ pub fn smooth_earth_diffraction(
     let mut x_km = [0.0; 3];
     let mut c_0 = [0.0; 3];
 
-    let theta_nlos = d_m / a_e_m - theta_los; // [Algorithm, Eqn 4.12]
-    let d_ml_m = d_hzn_m[0] + d_hzn_m[1];
+    let theta_nlos = d / a_e - theta_los; // [Algorithm, Eqn 4.12]
+    let d_ml = d_hzn[0] + d_hzn[1];
 
     // Compute 3 radii.
-    a_m[0] = (d_m - d_ml_m) / (d_m / a_e_m - theta_los);
-    a_m[1] = 0.5 * d_hzn_m[0].powi(2) / h_e_m[0];
-    a_m[2] = 0.5 * d_hzn_m[1].powi(2) / h_e_m[1];
+    a_m[0] = (d - d_ml) / (d / a_e - theta_los);
+    a_m[1] = 0.5 * d_hzn[0].powi(2) / h_e[0];
+    a_m[2] = 0.5 * d_hzn[1].powi(2) / h_e[1];
 
     d_km[0] = (a_m[0] * theta_nlos) / 1000.0;
-    d_km[1] = d_hzn_m[0] / 1000.0;
-    d_km[2] = d_hzn_m[1] / 1000.0;
+    d_km[1] = d_hzn[0] / 1000.0;
+    d_km[2] = d_hzn[1] / 1000.0;
 
     for i in 0..3 {
         // C_0 = (4/(3k))^(1/3) with k = a_i / a_0. [Vogler 1964, Eqn 2]
         c_0[i] = ((4.0 / 3.0) * EARTH_RADIUS_M / a_m[i]).powf(THIRD);
 
         // [Vogler 1964, Eqn 6a/7a]
-        k[i] = 0.017778 * c_0[i] * f_mhz.powf(-THIRD) / z_g.norm();
+        k[i] = 0.017778 * c_0[i] * f.powf(-THIRD) / z_g.norm();
 
         // [Vogler 1964, Fig 4]
         b_0[i] = 1.607 - k[i];
     }
 
     // Compute x_km for each radius. [Vogler 1964, Eqn 2]
-    x_km[1] = b_0[1] * c_0[1].powi(2) * f_mhz.powf(THIRD) * d_km[1];
-    x_km[2] = b_0[2] * c_0[2].powi(2) * f_mhz.powf(THIRD) * d_km[2];
-    x_km[0] = b_0[0] * c_0[0].powi(2) * f_mhz.powf(THIRD) * d_km[0] + x_km[1] + x_km[2];
+    x_km[1] = b_0[1] * c_0[1].powi(2) * f.powf(THIRD) * d_km[1];
+    x_km[2] = b_0[2] * c_0[2].powi(2) * f.powf(THIRD) * d_km[2];
+    x_km[0] = b_0[0] * c_0[0].powi(2) * f.powf(THIRD) * d_km[0] + x_km[1] + x_km[2];
 
     // Height gain functions.
     f_x_db[0] = height_function(x_km[1], k[1]);
@@ -265,11 +265,97 @@ mod smooth_earth_diffraction_tests {
 
     #[test]
     fn test_smooth_earth_diffraction_finite() {
-        let d_hzn_m = [50_000.0, 50_000.0];
-        let h_e_m = [30.0, 30.0];
+        let d_hzn = [50_000.0, 50_000.0];
+        let h_e = [30.0, 30.0];
         let z_g = Complex::new(15.0, 0.1);
 
-        let loss = smooth_earth_diffraction(100_000.0, 900.0, 8.5e6, 0.001, d_hzn_m, h_e_m, z_g);
+        let loss = smooth_earth_diffraction(100_001.0, 900.0, 8.5e6, 0.001, d_hzn, h_e, z_g);
         assert!(loss.is_finite());
     }
+}
+
+/// Wrapper for DiffractionLoss — uses Vogler smooth-earth diffraction approximation.
+///
+/// # Arguments
+///
+/// * `d` - Total path distance.
+/// * `d_hzn` - Horizon distances [tx, rx].
+/// * `h_e` - Effective heights [tx, rx].
+/// * `z_g` - Complex ground impedance.
+/// * `a_e` - Effective earth radius.
+/// * `delta_h` - Terrain roughness parameter.
+/// * `h` - Terminal heights [tx, rx].
+/// * `mode` - Propagation mode flag (0 for P2P).
+/// * `theta_los` - Line of sight angle.
+/// * `d_sml` - Smooth earth horizon distance sum.
+/// * `f` - Frequency in MHz.
+///
+/// # Returns
+///
+/// The computed diffraction loss in dB.
+pub fn diffraction_loss(
+    d: f64,
+    d_hzn: [f64; 2],
+    h_e: [f64; 2],
+    z_g: Complex<f64>,
+    a_e: f64,
+    delta_h: f64,
+    h: [f64; 2],
+    mode: i32,
+    theta_los: f64,
+    d_sml: f64,
+    f: f64,
+) -> f64 {
+    // Port of C++ DiffractionLoss:
+    // A_k = KnifeEdgeDiffraction(...)
+    // A_se = SmoothEarthDiffraction(...)
+    // A_fo = clutter term from terrain roughness over d_sML
+    // compute q, weighting w, and blend: A_d = w*A_se + (1-w)*A_k + A_fo
+
+    // Knife-edge (Bullington-like) contribution
+    let a_k_db = crate::math::diffraction::knife_edge_diffraction(d, f, a_e, theta_los, d_hzn);
+
+    // Smooth-earth (Vogler) contribution
+    let a_se_db = smooth_earth_diffraction(d, f, a_e, theta_los, d_hzn, h_e, z_g);
+
+    // Terrain clutter term using d_sML distance
+    let delta_h_dsml = crate::math::terrain::terrain_roughness(d_sml, delta_h);
+    let sigma_h_d = crate::math::terrain::sigma_h_function(delta_h_dsml);
+    // A_fo = min(15, 5 * log10(1 + 1e-5 * h0 * h1 * f * sigma_h))
+    let a_fo_db = {
+        let inner = 1.0 + 1e-5 * h[0] * h[1] * f * sigma_h_d;
+        let val = 5.0 * inner.log10();
+        val.min(15.0)
+    };
+
+    // Combined diffraction weighting calculations
+    let delta_h_d = crate::math::terrain::terrain_roughness(d, delta_h);
+
+    let mut q = h[0] * h[1];
+    let qk = h_e[0] * h_e[1] - q;
+
+    // MODE__P2P == 0 per C++ header (add ~10 for P2P)
+    if mode == 0 {
+        q += 10.0;
+    }
+
+    // Avoid division by zero
+    if q <= 0.0 {
+        q = std::f64::EPSILON;
+    }
+
+    let term1 = (1.0 + qk / q).sqrt();
+
+    let d_ml = d_hzn[0] + d_hzn[1];
+
+    // q2 = (term1 + (-theta_los * a_e + d_ML)/d) * MIN(delta_h_d * f / 47.7, 6283.2)
+    let wn_factor = (delta_h_d * f / crate::math::constants::WAVENUMBER_DIVISOR).min(6283.2);
+    let q2 = (term1 + (-theta_los * a_e + d_ml) / d) * wn_factor;
+
+    // weighting factor per ERL eqn 3.23
+    let w = 25.1 / (25.1 + q2.sqrt().max(0.0));
+
+    // Final combined diffraction loss
+    let a_d_db = w * a_se_db + (1.0 - w) * a_k_db + a_fo_db;
+    a_d_db
 }

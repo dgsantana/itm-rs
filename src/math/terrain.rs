@@ -54,7 +54,7 @@ use std::f64::consts::PI;
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::terrain_roughness;
+/// use itm::math::terrain_roughness;
 ///
 /// // Calculate roughness for a 10 km path with 100m elevation variation
 /// let roughness = terrain_roughness(10_000.0, 100.0);
@@ -68,6 +68,23 @@ use std::f64::consts::PI;
 pub fn terrain_roughness(d: f64, delta_h: f64) -> f64 {
     // [ERL 79-ITS 67, Eqn 3], with distance in meters instead of kilometers
     delta_h * (1.0 - 0.8 * (-d / 50e3).exp())
+}
+
+/// SigmaHFunction port (Sigma_h), RMS deviation of terrain and clutter within the
+/// first Fresnel zone.
+///
+/// This is a direct port of the C++ `SigmaHFunction` used by the original implementation:
+/// `0.78 * delta_h * exp(-0.5 * delta_h^(1/4))`
+///
+/// # Arguments
+///
+/// * `delta_h_meter` - Terrain irregularity parameter (meters)
+///
+/// # Returns
+///
+/// Sigma_h in meters.
+pub fn sigma_h_function(delta_h: f64) -> f64 {
+    0.78 * delta_h * (-0.5 * delta_h.powf(0.25)).exp()
 }
 
 /// Performs a linear least-squares fit on terrain profile data.
@@ -108,13 +125,13 @@ pub(crate) fn linear_least_square_fit(pfl: &[f64], d_start: f64, d_end: f64) -> 
     let distance_step = pfl[1];
 
     // Calculate starting and ending indices within the profile data
-    let mut index_start = ((d_start / distance_step).max(0.0)) as usize;
-    let mut index_end = num_points - (pfl[0].max(d_end / distance_step)) as usize;
+    let mut index_start = (d_start / distance_step).max(0.0) as usize;
+    let mut index_end = (d_end / distance_step).min(num_points as f64) as usize;
 
     // Ensure valid range; if empty or invalid, adjust boundaries
     if index_end <= index_start {
-        index_start = index_start.max(1);
-        index_end = num_points - num_points.max(index_end + 1);
+        index_start = index_start.max(1) - 1;
+        index_end = (index_end + 1).min(num_points);
     }
 
     let sample_count = (index_end - index_start) as f64;
@@ -193,7 +210,7 @@ pub enum SitingCriteria {
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::{initialize_area, SitingCriteria};
+/// use itm::math::{initialize_area, SitingCriteria};
 ///
 /// let site_criteria = [SitingCriteria::Random, SitingCriteria::Careful];
 /// let h_m = [30.0, 20.0];
@@ -206,8 +223,8 @@ pub enum SitingCriteria {
 pub fn initialize_area(
     site_criteria: [SitingCriteria; 2],
     gamma_e: f64,
-    delta_h_m: f64,
-    h_m: [f64; 2],
+    delta_h: f64,
+    h: [f64; 2],
 ) -> ([f64; 2], [f64; 2], [f64; 2]) {
     let mut h_e = [0.0; 2];
     let mut d_hzn = [0.0; 2];
@@ -216,7 +233,7 @@ pub fn initialize_area(
     for i in 0..2 {
         match site_criteria[i] {
             SitingCriteria::Random => {
-                h_e[i] = h_m[i];
+                h_e[i] = h[i];
             }
             SitingCriteria::Careful | SitingCriteria::VeryCareful => {
                 let mut b = match site_criteria[i] {
@@ -225,13 +242,13 @@ pub fn initialize_area(
                     SitingCriteria::Random => unreachable!(),
                 };
 
-                if h_m[i] < 5.0 {
-                    b *= (0.1 * PI * h_m[i]).sin();
+                if h[i] < 5.0 {
+                    b *= (0.1 * PI * h[i]).sin();
                 }
 
                 // [Algorithm, Eqn 3.2]
-                let denom = (2.0 * h_m[i] / delta_h_m.max(1e-3)).min(20.0);
-                h_e[i] = h_m[i] + (1.0 + b) * (-denom).exp();
+                let denom = (2.0 * h[i] / delta_h.max(1e-3)).min(20.0);
+                h_e[i] = h[i] + (1.0 + b) * (-denom).exp();
             }
         }
 
@@ -239,10 +256,10 @@ pub fn initialize_area(
 
         // [Algorithm, Eqn 3.3]
         const H_3_M: f64 = 5.0;
-        d_hzn[i] = d_ls_m * (-0.07 * (delta_h_m / h_e[i].max(H_3_M)).sqrt()).exp();
+        d_hzn[i] = d_ls_m * (-0.07 * (delta_h / h_e[i].max(H_3_M)).sqrt()).exp();
 
         // [Algorithm, Eqn 3.4]
-        theta_hzn[i] = (0.65 * delta_h_m * (d_ls_m / d_hzn[i] - 1.0) - 2.0 * h_e[i]) / d_ls_m;
+        theta_hzn[i] = (0.65 * delta_h * (d_ls_m / d_hzn[i] - 1.0) - 2.0 * h_e[i]) / d_ls_m;
     }
 
     (h_e, d_hzn, theta_hzn)
@@ -255,9 +272,9 @@ mod tests {
     #[test]
     fn test_initialize_area_outputs_finite() {
         let site_criteria = [SitingCriteria::Random, SitingCriteria::VeryCareful];
-        let h_m = [30.0, 20.0];
+        let h = [30.0, 20.0];
 
-        let (h_e, d_hzn, theta_hzn) = initialize_area(site_criteria, 1.57e-7, 90.0, h_m);
+        let (h_e, d_hzn, theta_hzn) = initialize_area(site_criteria, 1.57e-7, 90.0, h);
 
         for i in 0..2 {
             assert!(h_e[i].is_finite());
@@ -297,7 +314,7 @@ mod tests {
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::find_horizons;
+/// use itm::math::find_horizons;
 ///
 /// // Minimal terrain profile: 3 points, 1 km spacing, flat terrain at 0 m.
 /// let pfl = [3.0, 1000.0, 0.0, 0.0, 0.0];
@@ -308,42 +325,42 @@ mod tests {
 /// assert!(d_hzn[0] > 0.0);
 /// ```
 ///
-pub fn find_horizons(pfl: &[f64], a_e: f64, h_m: [f64; 2]) -> ([f64; 2], [f64; 2]) {
+pub fn find_horizons(pfl: &[f64], a_e: f64, h: [f64; 2]) -> ([f64; 2], [f64; 2]) {
     let np = pfl[0] as usize;
     let xi = pfl[1];
 
-    let d_m = pfl[0] * pfl[1];
+    let d = pfl[0] * pfl[1];
 
     // Compute terminal elevations including structural heights.
-    let z_tx_m = pfl[2] + h_m[0];
-    let z_rx_m = pfl[np + 2] + h_m[1];
+    let z_tx = pfl[2] + h[0];
+    let z_rx = pfl[np + 1] + h[1];
 
     // Initial horizon angles assuming line-of-sight. [TN101, Eq 6.15]
     let mut theta_hzn = [
-        (z_rx_m - z_tx_m) / d_m - d_m / (2.0 * a_e),
-        -(z_rx_m - z_tx_m) / d_m - d_m / (2.0 * a_e),
+        (z_rx - z_tx) / d - d / (2.0 * a_e),
+        -(z_rx - z_tx) / d - d / (2.0 * a_e),
     ];
 
-    let mut d_hzn = [d_m, d_m];
+    let mut d_hzn = [d, d];
 
-    let mut d_tx_m = 0.0;
-    let mut d_rx_m = d_m;
+    let mut d_tx = 0.0;
+    let mut d_rx = d;
 
     for i in 1..np {
-        d_tx_m += xi;
-        d_rx_m -= xi;
+        d_tx += xi;
+        d_rx -= xi;
 
-        let theta_tx = (pfl[i + 2] - z_tx_m) / d_tx_m - d_tx_m / (2.0 * a_e);
-        let theta_rx = -(z_rx_m - pfl[i + 2]) / d_rx_m - d_rx_m / (2.0 * a_e);
+        let theta_tx = (pfl[i + 2] - z_tx) / d_tx - d_tx / (2.0 * a_e);
+        let theta_rx = -(z_rx - pfl[i + 2]) / d_rx - d_rx / (2.0 * a_e);
 
         if theta_tx > theta_hzn[0] {
             theta_hzn[0] = theta_tx;
-            d_hzn[0] = d_tx_m;
+            d_hzn[0] = d_tx;
         }
 
         if theta_rx > theta_hzn[1] {
             theta_hzn[1] = theta_rx;
-            d_hzn[1] = d_rx_m;
+            d_hzn[1] = d_rx;
         }
     }
 
@@ -357,8 +374,8 @@ mod find_horizons_tests {
     #[test]
     fn test_find_horizons_flat_profile() {
         let pfl = [3.0, 1000.0, 0.0, 0.0, 0.0];
-        let h_m = [10.0, 10.0];
-        let (theta_hzn, d_hzn) = find_horizons(&pfl, 8.5e6, h_m);
+        let h = [10.0, 10.0];
+        let (theta_hzn, d_hzn) = find_horizons(&pfl, 8.5e6, h);
 
         assert!(theta_hzn[0].is_finite());
         assert!(theta_hzn[1].is_finite());
@@ -395,16 +412,16 @@ mod find_horizons_tests {
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::compute_delta_h;
+/// use itm::math::compute_delta_h;
 ///
 /// let pfl = [5.0, 1000.0, 0.0, 10.0, 5.0, 12.0, 8.0];
 /// let delta_h = compute_delta_h(&pfl, 0.0, 4000.0);
 /// assert!(delta_h >= 0.0);
 /// ```
-pub fn compute_delta_h(pfl: &[f64], d_start_m: f64, d_end_m: f64) -> f64 {
+pub fn compute_delta_h(pfl: &[f64], d_start: f64, d_end: f64) -> f64 {
     let np = pfl[0] as usize;
-    let mut x_start = d_start_m / pfl[1];
-    let mut x_end = d_end_m / pfl[1];
+    let mut x_start = d_start / pfl[1];
+    let mut x_end = d_end / pfl[1];
 
     // If there are fewer than 2 terrain points, delta_h = 0.
     if x_end - x_start < 2.0 {
@@ -427,7 +444,7 @@ pub fn compute_delta_h(pfl: &[f64], d_start_m: f64, d_end_m: f64) -> f64 {
     x_start -= i as f64 + 1.0;
 
     for j in 0..n {
-        while x_start > 0.0 && (i + 1) < np {
+        while x_start > 0.0 && (i + 2) < np {
             x_start -= 1.0;
             i += 1;
         }
@@ -455,11 +472,11 @@ pub fn compute_delta_h(pfl: &[f64], d_start_m: f64, d_end_m: f64) -> f64 {
     });
     let q90 = diffs[p90];
 
-    let delta_h_d_m = q10 - q90;
+    let delta_h_d = q10 - q90;
 
     // [ERL 79-ITS 67, Eqn 3], inverted.
-    let smoothing = 1.0 - 0.8 * (-(d_end_m - d_start_m) / 50e3).exp();
-    delta_h_d_m / smoothing
+    let smoothing = 1.0 - 0.8 * (-(d_end - d_start) / 50e3).exp();
+    delta_h_d / smoothing
 }
 
 #[cfg(test)]
@@ -471,5 +488,50 @@ mod compute_delta_h_tests {
         let pfl = [5.0, 1000.0, 0.0, 10.0, 5.0, 12.0, 8.0];
         let delta_h = compute_delta_h(&pfl, 0.0, 4000.0);
         assert!(delta_h >= 0.0);
+    }
+}
+
+/// Result of the QuickPfl profile preprocessing.
+pub struct QuickPflResult {
+    /// Horizon angles in radians [transmitter, receiver].
+    pub theta_hzn: [f64; 2],
+    /// Horizon distances in meters [transmitter, receiver].
+    pub d_hzn: [f64; 2],
+    /// Effective heights in meters [transmitter, receiver].
+    pub h_e: [f64; 2],
+    /// Terrain roughness factor (delta h).
+    pub delta_h: f64,
+    /// Total path distance in meters.
+    pub d: f64,
+}
+
+/// Quick profile preprocess helper.
+///
+/// Returns a `QuickPflResult` struct containing horizon angles, distances, effective heights,
+/// terrain roughness, and total distance.
+///
+/// # Arguments
+///
+/// * `pfl` - Path profile array.
+/// * `gamma_e` - Curvature of the effective earth (1/m).
+/// * `h` - Structural heights of terminal antennas [transmitter, receiver].
+///
+/// # Returns
+///
+/// A `QuickPflResult` with preprocessed path parameters.
+pub fn quick_pfl(pfl: &[f64], gamma_e: f64, h: [f64; 2]) -> QuickPflResult {
+    // minimal, pragmatic implementation used while full profile port is in progress
+    let d = pfl[0] * pfl[1];
+    let (theta_hzn, d_hzn) = find_horizons(pfl, gamma_e, h);
+    // initialize_area with random siting to derive h_e approximation
+    let site_criteria = [SitingCriteria::Random, SitingCriteria::Random];
+    let (h_e, _d_hzn2, _theta_hzn2) = initialize_area(site_criteria, gamma_e, 0.0, h);
+    let delta_h = compute_delta_h(pfl, 0.0, d);
+    QuickPflResult {
+        theta_hzn,
+        d_hzn,
+        h_e,
+        delta_h,
+        d,
     }
 }

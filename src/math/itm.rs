@@ -4,12 +4,11 @@
 //! functions (area and point-to-point modes) and input validation. It
 //! reuses lower-level math utilities defined elsewhere in the `math` module.
 
-use crate::math::propagation::free_space_loss;
-use crate::math::propagation::initialize_point_to_point;
-use crate::math::terrain::{SitingCriteria, compute_delta_h, find_horizons, initialize_area};
-use crate::math::variability::{Climate, VariabilityMode, variability_loss}; // variability_warnings removed
+// use direct module functions from `crate::math::longley_rice` where needed
+use crate::math::propagation::{free_space_loss, initialize_point_to_point};
+use crate::math::terrain::{SitingCriteria, initialize_area};
+use crate::math::variability::{Climate, VariabilityMode, variability_loss};
 
-use num_complex::Complex;
 use std::fmt;
 
 /// Error codes corresponding to ITM failures.
@@ -68,15 +67,18 @@ pub mod warnings {
 }
 
 /// Intermediate values structure captured by the Ex variants.
+///
+/// Field names use idiomatic snake_case. Compatibility accessor methods for the
+/// original field-style names are provided below to aid incremental migration.
 #[derive(Debug, Clone)]
 pub struct IntermediateValues {
-    pub d__km: f64,
-    pub A_ref__db: f64,
-    pub A_fs__db: f64,
-    pub delta_h__meter: f64,
-    pub d_hzn__meter: [f64; 2],
-    pub h_e__meter: [f64; 2],
-    pub N_s: f64,
+    pub d_km: f64,
+    pub a_ref_db: f64,
+    pub a_fs_db: f64,
+    pub delta_h_meter: f64,
+    pub d_hzn_meter: [f64; 2],
+    pub h_e_meter: [f64; 2],
+    pub n_s: f64,
     pub theta_hzn: [f64; 2],
     pub mode: i32,
 }
@@ -84,16 +86,54 @@ pub struct IntermediateValues {
 impl Default for IntermediateValues {
     fn default() -> Self {
         Self {
-            d__km: 0.0,
-            A_ref__db: 0.0,
-            A_fs__db: 0.0,
-            delta_h__meter: 0.0,
-            d_hzn__meter: [0.0, 0.0],
-            h_e__meter: [0.0, 0.0],
-            N_s: 0.0,
+            d_km: 0.0,
+            a_ref_db: 0.0,
+            a_fs_db: 0.0,
+            delta_h_meter: 0.0,
+            d_hzn_meter: [0.0, 0.0],
+            h_e_meter: [0.0, 0.0],
+            n_s: 0.0,
             theta_hzn: [0.0, 0.0],
             mode: 0,
         }
+    }
+}
+
+impl IntermediateValues {
+    // Compatibility accessors reproducing the previous field-style names.
+    // These are methods (not fields). Call sites in this crate were updated to use the
+    // new snake_case fields directly; external callers can migrate to them as well.
+    #[deprecated(note = "use `d_km` field instead")]
+    pub fn d__km(&self) -> f64 {
+        self.d_km
+    }
+    #[deprecated(note = "use `a_ref_db` field instead")]
+    pub fn A_ref__db(&self) -> f64 {
+        self.a_ref_db
+    }
+    #[deprecated(note = "use `a_fs_db` field instead")]
+    pub fn A_fs__db(&self) -> f64 {
+        self.a_fs_db
+    }
+    #[deprecated(note = "use `delta_h_meter` field instead")]
+    pub fn delta_h__meter(&self) -> f64 {
+        self.delta_h_meter
+    }
+    #[deprecated(note = "use `d_hzn_meter` field instead")]
+    pub fn d_hzn__meter(&self) -> [f64; 2] {
+        self.d_hzn_meter
+    }
+    #[deprecated(note = "use `h_e_meter` field instead")]
+    pub fn h_e__meter(&self) -> [f64; 2] {
+        self.h_e_meter
+    }
+    #[deprecated(note = "use `n_s` field instead")]
+    pub fn N_s(&self) -> f64 {
+        self.n_s
+    }
+    #[deprecated(note = "use `theta_hzn` field instead")]
+    pub fn theta_hzn__compat(&self) -> [f64; 2] {
+        self.theta_hzn
     }
 }
 
@@ -180,273 +220,6 @@ pub fn validate_inputs(
     Ok(warns)
 }
 
-// -- Helper stubs for components not yet ported --
-
-/// QuickPfl: quick profile preprocess. For now, a lightweight implementation
-/// that derives horizons and delta_h using already-ported functions.
-fn quick_pfl(
-    pfl: &[f64],
-    gamma_e: f64,
-    h_meter: [f64; 2],
-) -> ([f64; 2], [f64; 2], [f64; 2], f64, f64) {
-    // returns (theta_hzn, d_hzn, h_e, delta_h, d_meter)
-    let d_meter = pfl[0] * pfl[1];
-    let (theta_hzn, d_hzn) = find_horizons(pfl, gamma_e, h_meter);
-    // use initialize_area with random siting to derive h_e approximation
-    let site_criteria = [SitingCriteria::Random, SitingCriteria::Random];
-    let (h_e, _d_hzn2, _theta_hzn2) = initialize_area(site_criteria, gamma_e, 0.0, h_meter);
-    let delta_h = compute_delta_h(pfl, 0.0, d_meter);
-    (theta_hzn, d_hzn, h_e, delta_h, d_meter)
-}
-
-/// Placeholder for Longley-Rice core algorithm. This must be replaced by the
-/// full Rust port. For now it returns a plausible A_ref__db.
-/// Wrapper for DiffractionLoss - currently maps to Vogler smooth-earth diffraction.
-fn diffraction_loss(
-    d_m: f64,
-    d_hzn_m: [f64; 2],
-    h_e_m: [f64; 2],
-    z_g: Complex<f64>,
-    a_e_m: f64,
-    delta_h_m: f64,
-    _h_m: [f64; 2],
-    _mode: i32,
-    theta_los: f64,
-    d_sml_m: f64,
-    f_mhz: f64,
-) -> f64 {
-    // Use Vogler 3-radii smooth-earth diffraction as an approximation for DiffractionLoss.
-    crate::math::diffraction::smooth_earth_diffraction(
-        d_m, f_mhz, a_e_m, theta_los, d_hzn_m, h_e_m, z_g,
-    )
-}
-
-/// Wrapper for LineOfSightLoss. For now we approximate with diffraction wrapper at small distances.
-fn line_of_sight_loss(
-    d_m: f64,
-    h_e_m: [f64; 2],
-    z_g: Complex<f64>,
-    delta_h_m: f64,
-    m_d: f64,
-    a_d0_db: f64,
-    d_sml_m: f64,
-    f_mhz: f64,
-) -> f64 {
-    // Simple approximation: use diffraction_loss as a proxy.
-    diffraction_loss(
-        d_m,
-        [d_sml_m / 2.0, d_sml_m / 2.0],
-        h_e_m,
-        z_g,
-        d_sml_m / 2.0,
-        delta_h_m,
-        [0.0, 0.0],
-        0,
-        0.0,
-        d_sml_m,
-        f_mhz,
-    )
-}
-
-fn longley_rice_(
-    theta_hzn: [f64; 2],
-    f_mhz: f64,
-    z_g: Complex<f64>,
-    d_hzn_m: [f64; 2],
-    h_e_m: [f64; 2],
-    gamma_e: f64,
-    n_s: f64,
-    delta_h_m: f64,
-    h_m: [f64; 2],
-    d_m: f64,
-    mode: i32,
-    warnings: &mut u32,
-    propmode: &mut i32,
-) -> Result<f64, ItmError> {
-    // Bring in troposcatter and diffraction functions
-    use crate::math::scatter::troposcatter_loss;
-
-    // effective earth radius
-    let a_e_m = 1.0 / gamma_e;
-
-    // Terrestrial smooth earth horizon distances
-    let mut d_hzn_s_m = [0.0f64; 2];
-    for i in 0..2 {
-        d_hzn_s_m[i] = (2.0 * h_e_m[i] * a_e_m).sqrt();
-    }
-
-    let d_sml_m = d_hzn_s_m[0] + d_hzn_s_m[1];
-    let d_ml_m = d_hzn_m[0] + d_hzn_m[1];
-
-    let theta_los = -((theta_hzn[0] + theta_hzn[1]).max(-d_ml_m / a_e_m));
-
-    if theta_hzn[0].abs() > 200e-3 {
-        *warnings |= warnings::WARN_TX_HORIZON_ANGLE;
-    }
-    if theta_hzn[1].abs() > 200e-3 {
-        *warnings |= warnings::WARN_RX_HORIZON_ANGLE;
-    }
-
-    if d_hzn_m[0] < 0.1 * d_hzn_s_m[0] {
-        *warnings |= warnings::WARN_TX_HORIZON_DISTANCE_1;
-    }
-    if d_hzn_m[1] < 0.1 * d_hzn_s_m[1] {
-        *warnings |= warnings::WARN_RX_HORIZON_DISTANCE_1;
-    }
-
-    if d_hzn_m[0] > 3.0 * d_hzn_s_m[0] {
-        *warnings |= warnings::WARN_TX_HORIZON_DISTANCE_2;
-    }
-    if d_hzn_m[1] > 3.0 * d_hzn_s_m[1] {
-        *warnings |= warnings::WARN_RX_HORIZON_DISTANCE_2;
-    }
-
-    if n_s < 150.0 {
-        return Err(ItmError::ErrorSurfaceRefractivitySmall);
-    }
-    if n_s > 400.0 {
-        return Err(ItmError::ErrorSurfaceRefractivityLarge);
-    }
-    if n_s < 250.0 {
-        *warnings |= warnings::WARN_SURFACE_REFRACTIVITY;
-    }
-
-    if a_e_m < 4_000_000.0 || a_e_m > 13_333_333.0 {
-        return Err(ItmError::ErrorEffectiveEarth);
-    }
-
-    if z_g.re <= z_g.im.abs() {
-        return Err(ItmError::ErrorGroundImpedance);
-    }
-
-    let d_3_m = d_sml_m.max(d_ml_m + 5.0 * ((a_e_m.powi(2) / f_mhz).powf(1.0 / 3.0)));
-    let d_4_m = d_3_m + 10.0 * ((a_e_m.powi(2) / f_mhz).powf(1.0 / 3.0));
-
-    let a_3_db = diffraction_loss(
-        d_3_m, d_hzn_m, h_e_m, z_g, a_e_m, delta_h_m, h_m, mode, theta_los, d_sml_m, f_mhz,
-    );
-    let a_4_db = diffraction_loss(
-        d_4_m, d_hzn_m, h_e_m, z_g, a_e_m, delta_h_m, h_m, mode, theta_los, d_sml_m, f_mhz,
-    );
-
-    let m_d = (a_4_db - a_3_db) / (d_4_m - d_3_m);
-    let a_d0_db = a_3_db - m_d * d_3_m;
-
-    let d_min_m = (h_e_m[0] - h_e_m[1]).abs() / 200e-3;
-    if d_m < d_min_m {
-        *warnings |= warnings::WARN_PATH_DISTANCE_TOO_SMALL_1;
-    }
-    if d_m < 1e3 {
-        *warnings |= warnings::WARN_PATH_DISTANCE_TOO_SMALL_2;
-    }
-    if d_m > 1000e3 {
-        *warnings |= warnings::WARN_PATH_DISTANCE_TOO_BIG_1;
-    }
-    if d_m > 2000e3 {
-        *warnings |= warnings::WARN_PATH_DISTANCE_TOO_BIG_2;
-    }
-
-    let mut a_ref_db: f64;
-    let mut propm = 0i32;
-
-    if d_m < d_sml_m {
-        let a_sml_db = d_sml_m * m_d + a_d0_db;
-
-        let mut d_0_m = 0.04 * f_mhz * h_e_m[0] * h_e_m[1];
-        let d_1_m: f64;
-        if a_d0_db >= 0.0 {
-            d_0_m = d_0_m.min(0.5 * d_ml_m);
-            d_1_m = d_0_m + 0.25 * (d_ml_m - d_0_m);
-        } else {
-            d_1_m = (-a_d0_db / m_d).max(0.25 * d_ml_m);
-        }
-
-        let a_1_db = line_of_sight_loss(d_1_m, h_e_m, z_g, delta_h_m, m_d, a_d0_db, d_sml_m, f_mhz);
-
-        let mut flag = false;
-        let mut khat1 = 0.0f64;
-        let mut khat2 = 0.0f64;
-
-        if d_0_m < d_1_m {
-            let a_0_db =
-                line_of_sight_loss(d_0_m, h_e_m, z_g, delta_h_m, m_d, a_d0_db, d_sml_m, f_mhz);
-            let q = (d_sml_m / d_0_m).ln();
-
-            let denom = (d_sml_m - d_0_m) * (d_1_m / d_0_m).ln() - (d_1_m - d_0_m) * q;
-            if denom.abs() > 0.0 {
-                khat2 = ((d_sml_m - d_0_m) * (a_1_db - a_0_db)
-                    - (d_1_m - d_0_m) * (a_sml_db - a_0_db))
-                    / denom;
-            }
-            if khat2.is_nan() || khat2 < 0.0 {
-                khat2 = 0.0;
-            }
-
-            flag = a_d0_db > 0.0 || khat2 > 0.0;
-
-            if flag {
-                khat1 = (a_sml_db - a_0_db - khat2 * q) / (d_sml_m - d_0_m);
-                if khat1 < 0.0 {
-                    khat1 = 0.0;
-                    khat2 = (a_sml_db - a_0_db).abs() / q;
-                    if khat2 == 0.0 {
-                        khat1 = m_d;
-                    }
-                }
-            }
-        }
-
-        if !flag {
-            khat1 = (a_sml_db - a_1_db).abs() / (d_sml_m - d_1_m);
-            khat2 = 0.0;
-            if khat1 == 0.0 {
-                khat1 = m_d;
-            }
-        }
-
-        let a_o_db = a_sml_db - khat1 * d_sml_m - khat2 * d_sml_m.ln();
-        a_ref_db = a_o_db + khat1 * d_m + khat2 * d_m.ln();
-        propm = 1; // LINE_OF_SIGHT
-    } else {
-        // trans-horizon path
-        let d_5_m = d_ml_m + 200e3;
-        let d_6_m = d_ml_m + 400e3;
-
-        let mut h0 = -1.0f64;
-        let a6_db = troposcatter_loss(
-            d_6_m, &theta_hzn, &d_hzn_m, &h_e_m, a_e_m, n_s, f_mhz, theta_los, &mut h0,
-        );
-        let a5_db = troposcatter_loss(
-            d_5_m, &theta_hzn, &d_hzn_m, &h_e_m, a_e_m, n_s, f_mhz, theta_los, &mut h0,
-        );
-
-        let (m_s, a_s0_db, d_x_m) = if a5_db < 1000.0 {
-            let m_s = (a6_db - a5_db) / 200e3;
-            let mut d_x = d_ml_m
-                .max(d_ml_m + 1.088 * (a_e_m.powi(2) / f_mhz).powf(1.0 / 3.0) * f_mhz.ln().abs());
-            d_x = d_x.max((a5_db - a_d0_db - m_s * d_5_m) / (m_d - m_s));
-            let a_s0 = (m_d - m_s) * d_x + a_d0_db;
-            (m_s, a_s0, d_x)
-        } else {
-            (m_d, a_d0_db, 10e6)
-        };
-
-        if d_m > d_x_m {
-            a_ref_db = m_s * d_m + a_s0_db;
-            propm = 3; // TROPOSCATTER
-        } else {
-            a_ref_db = m_d * d_m + a_d0_db;
-            propm = 2; // DIFFRACTION
-        }
-    }
-
-    if a_ref_db < 0.0 {
-        a_ref_db = 0.0;
-    }
-    *propmode = propm;
-    Ok(a_ref_db)
-}
-
 /// Public Rust-first AREA TLS wrapper.
 ///
 /// Returns (A_db, warnings_mask, IntermediateValues) or `ItmError`.
@@ -505,7 +278,7 @@ pub fn itm_area_tls(
     let site_criteria = [tx_site_criteria_idx as i32, rx_site_criteria_idx as i32];
     let h_meter = [h_tx_m, h_rx_m];
     let mut inter = IntermediateValues::default();
-    inter.d__km = d_km;
+    inter.d_km = d_km;
 
     // Point-to-point initialization (ground impedance, gamma_e, N_s)
     let (z_g, gamma_e, n_s) = initialize_point_to_point(
@@ -549,22 +322,12 @@ pub fn itm_area_tls(
 
     // Call Longley-Rice
     let mut warnings_u32 = warnings_mask;
-    let mut propmode = 0i32;
-    let a_ref_db = longley_rice_(
-        theta_hzn,
-        f_mhz,
-        z_g,
-        d_hzn_m,
-        h_e_m,
-        gamma_e,
-        n_s,
-        delta_h_m,
-        h_meter,
-        d_m,
-        0,
-        &mut warnings_u32,
-        &mut propmode,
+    let lr_result = crate::math::longley_rice::longley_rice(
+        theta_hzn, f_mhz, z_g, d_hzn_m, h_e_m, gamma_e, n_s, delta_h_m, h_meter, d_m, 0,
     )?;
+    let a_ref_db = lr_result.a_ref;
+    warnings_u32 |= lr_result.warnings;
+    let propmode = lr_result.propmode;
 
     let a_fs_db = free_space_loss(d_m, f_mhz);
     let result_variability = variability_loss(
@@ -585,13 +348,13 @@ pub fn itm_area_tls(
 
     let a_db = a_fs_db + result_variability;
 
-    // fill inter values
-    inter.A_ref__db = a_ref_db;
-    inter.A_fs__db = a_fs_db;
-    inter.delta_h__meter = delta_h_m;
-    inter.d_hzn__meter = d_hzn_m;
-    inter.h_e__meter = h_e_m;
-    inter.N_s = n_s;
+    // fill inter values (snake_case fields)
+    inter.a_ref_db = a_ref_db;
+    inter.a_fs_db = a_fs_db;
+    inter.delta_h_meter = delta_h_m;
+    inter.d_hzn_meter = d_hzn_m;
+    inter.h_e_meter = h_e_m;
+    inter.n_s = n_s;
     inter.theta_hzn = theta_hzn;
     inter.mode = propmode;
 
@@ -682,9 +445,15 @@ pub fn itm_p2p_tls(
         Ok(w) => {
             // Continue
             let mut inter = IntermediateValues::default();
-            // Use QuickPfl-like helper
-            let (theta_hzn, d_hzn_m, h_e_m, delta_h_m, d_m) =
-                quick_pfl(pfl, 1.0 / 157e-9, [h_tx_m, h_rx_m]);
+            // Use QuickPfl-like helper (delegate to extracted module)
+            let q_pfl = crate::math::terrain::quick_pfl(pfl, 1.0 / 157e-9, [h_tx_m, h_rx_m]);
+            let (theta_hzn, d_hzn_m, h_e_m, delta_h_m, d_m) = (
+                q_pfl.theta_hzn,
+                q_pfl.d_hzn,
+                q_pfl.h_e,
+                q_pfl.delta_h,
+                q_pfl.d,
+            );
             // initialize point-to-point
             let (z_g, gamma_e, n_s) = initialize_point_to_point(
                 f_mhz,
@@ -699,8 +468,7 @@ pub fn itm_p2p_tls(
                 sigma,
             );
             let mut warnings = w;
-            let mut propmode = 0i32;
-            let a_ref_db = longley_rice_(
+            let lr_result = crate::math::longley_rice::longley_rice(
                 theta_hzn,
                 f_mhz,
                 z_g,
@@ -712,9 +480,10 @@ pub fn itm_p2p_tls(
                 [h_tx_m, h_rx_m],
                 d_m,
                 0,
-                &mut warnings,
-                &mut propmode,
             )?;
+            let a_ref_db = lr_result.a_ref;
+            warnings |= lr_result.warnings;
+            let propmode = lr_result.propmode;
             let a_fs_db = free_space_loss(d_m, f_mhz);
             let variability = variability_loss(
                 time_pct,
@@ -732,12 +501,12 @@ pub fn itm_p2p_tls(
                 &mut warnings,
             );
             let a_db = a_fs_db + variability;
-            inter.A_ref__db = a_ref_db;
-            inter.A_fs__db = a_fs_db;
-            inter.delta_h__meter = delta_h_m;
-            inter.d_hzn__meter = d_hzn_m;
-            inter.h_e__meter = h_e_m;
-            inter.N_s = n_s;
+            inter.a_ref_db = a_ref_db;
+            inter.a_fs_db = a_fs_db;
+            inter.delta_h_meter = delta_h_m;
+            inter.d_hzn_meter = d_hzn_m;
+            inter.h_e_meter = h_e_m;
+            inter.n_s = n_s;
             inter.theta_hzn = theta_hzn;
             inter.mode = propmode;
             Ok((a_db, warnings, inter))
@@ -831,6 +600,6 @@ mod tests {
         assert!(res.is_ok());
         let (a_db, warnings, inter) = res.unwrap();
         assert!(a_db.is_finite());
-        assert!(inter.A_ref__db.is_finite());
+        assert!(inter.a_ref_db.is_finite());
     }
 }

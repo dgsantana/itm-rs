@@ -64,7 +64,7 @@
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::inverse_ccdf;
+/// use itm::math::inverse_ccdf;
 ///
 /// // Find the 50th percentile (median) - should be near 0
 /// let median = inverse_ccdf(0.5);

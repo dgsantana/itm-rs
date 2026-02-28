@@ -34,7 +34,7 @@
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::h0_curve;
+/// use itm::math::h0_curve;
 ///
 /// let value = h0_curve(0, 5.0);
 /// assert!(value > 0.0);
@@ -80,7 +80,7 @@ pub fn h0_curve(j: usize, r: f64) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::h0_function;
+/// use itm::math::h0_function;
 ///
 /// let value = h0_function(10.0, 2.5);
 /// assert!(value > 0.0);

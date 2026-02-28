@@ -43,7 +43,7 @@ use num_complex::Complex;
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::free_space_loss;
+/// use itm::math::free_space_loss;
 ///
 /// // 1 km distance at 1 GHz
 /// let loss1 = free_space_loss(1000.0, 1e9);
@@ -97,7 +97,7 @@ pub enum Polarization {
 /// # Examples
 ///
 /// ```
-/// use itm_rs::math::{initialize_point_to_point, Polarization};
+/// use itm::math::{initialize_point_to_point, Polarization};
 ///
 /// let (z_g, gamma_e, n_s) = initialize_point_to_point(
 ///     900.0,
@@ -143,4 +143,86 @@ pub fn initialize_point_to_point(
     }
 
     (z_g, gamma_e, n_s)
+}
+
+/// Line-of-sight loss wrapper.
+///
+/// For now this function uses the diffraction approximation as a proxy for LOS
+/// loss computation at short distances.
+///
+/// # Arguments
+///
+/// * `d` - Total path distance.
+/// * `h_e` - Effective heights [tx, rx].
+/// * `z_g` - Complex ground impedance.
+/// * `delta_h` - Terrain roughness parameter.
+/// * `m_d` - Slope of diffraction loss.
+/// * `a_d0` - Intercept of diffraction loss.
+/// * `d_sml` - Smooth earth horizon distance sum.
+/// * `f` - Frequency in MHz.
+///
+/// # Returns
+///
+/// The line-of-sight loss in dB.
+pub fn line_of_sight_loss(
+    d: f64,
+    h_e: [f64; 2],
+    z_g: Complex<f64>,
+    delta_h: f64,
+    m_d: f64,
+    a_d0: f64,
+    d_sml: f64,
+    f: f64,
+) -> f64 {
+    // Implemented to match the C++ LineOfSightLoss algorithm.
+    // delta_h_d = TerrainRoughness(d, delta_h)
+    let delta_h_d = crate::math::terrain::terrain_roughness(d, delta_h);
+
+    // sigma_h_d = SigmaHFunction(delta_h_d)
+    let sigma_h_d = crate::math::terrain::sigma_h_function(delta_h_d);
+
+    // wavenumber (wn = f / 47.7)
+    let wn = f / crate::math::constants::WAVENUMBER_DIVISOR;
+
+    // sin_psi per Algorithm Eqn 4.46
+    let sum_h = h_e[0] + h_e[1];
+    let sin_psi = sum_h / d.hypot(sum_h);
+
+    // R_e = (sin_psi - Z_g) / (sin_psi + Z_g) * exp(-MIN(10.0, wn * sigma_h_d * sin_psi))
+    let s_c = Complex::new(sin_psi, 0.0);
+    let mut r_e = (s_c - z_g) / (s_c + z_g);
+    // MIN(10, wn * sigma_h_d * sin_psi)
+    let min_val = (wn * sigma_h_d * sin_psi).min(10.0);
+    r_e *= (-min_val).exp();
+
+    // q = |R_e|^2
+    let mut q = r_e.re.powi(2) + r_e.im.powi(2);
+    if q <= 0.0 {
+        q = std::f64::EPSILON;
+    }
+    if q < 0.25 || q < sin_psi {
+        let scale = (sin_psi / q).sqrt();
+        r_e *= scale;
+        q = r_e.re.powi(2) + r_e.im.powi(2);
+    }
+
+    // phase difference delta_phi = wn * 2 * h_e[0] * h_e[1] / d
+    let mut delta_phi = wn * 2.0 * h_e[0] * h_e[1] / d;
+    if delta_phi > std::f64::consts::PI / 2.0 {
+        delta_phi = std::f64::consts::PI - (std::f64::consts::PI / 2.0).powi(2) / delta_phi;
+    }
+
+    // two-ray attenuation
+    let rr = Complex::new(delta_phi.cos(), -delta_phi.sin()) + r_e;
+    let a_t_db = -10.0 * (rr.re.powi(2) + rr.im.powi(2)).log10();
+
+    // extended diffraction attenuation
+    let a_d_db = m_d * d + a_d0;
+
+    // weighting factor w = 1 / (1 + f * delta_h / max(10e3, d_sml_m))
+    let denom = d_sml.max(10e3);
+    let w = 1.0 / (1.0 + f * delta_h / denom);
+
+    // final LOS loss
+    w * a_t_db + (1.0 - w) * a_d_db
 }
