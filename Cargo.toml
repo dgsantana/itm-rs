@@ -8,3 +8,4 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]
 num-complex = "0.4"
+rayon = "1.11"

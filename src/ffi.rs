@@ -1,8 +1,6 @@
-use std::f64;
-
-use std::slice;
-
 use crate::math::itm::{ItmError, itm_area_tls, itm_p2p_tls};
+use rayon::prelude::*;
+use std::slice;
 
 /// C-API wrapper for the ITM Area TLS function.
 /// All pointers must be valid. Warnings are written to the `warnings` pointer.
@@ -97,13 +95,13 @@ pub unsafe extern "C" fn itm_area_tls_c(
 /// * `power_w` - Transmission power in Watts.
 /// * `h_tx_m` - Transmitter antenna height in meters.
 /// * `h_rx_m` - Receiver antenna height in meters.
-/// * `rx_sens_dbm` - The sensitivity threshold of the receiver in dBm (e.g., -90.0). Defaults to -90.0 if you pass 0.0 for this value simply as a fallback.
-/// * `delta_h_m` - Terrain irregularity parameter in meters (e.g. 90.0).
-/// * `climate_idx` - Climate type (e.g., 5 for Continental Temperate).
-/// * `n_0` - Surface refractivity (e.g. 301.0).
-/// * `pol_idx` - Polarization (0 for Horizontal, 1 for Vertical).
-/// * `epsilon` - Relative earth dielectric constant (e.g. 15.0).
-/// * `sigma` - Earth surface conductivity (e.g. 0.005).
+/// * `rx_sens_dbm` - The sensitivity threshold of the receiver in dBm (e.g., -90.0). Defaults to -90.0 if you pass 0.0.
+/// * `delta_h_m` - Terrain irregularity parameter in meters. **Default: 90.0** (Average hilly terrain).
+/// * `climate_idx` - Climate type. **Default: 5** (Continental Temperate).
+/// * `n_0` - Surface refractivity. **Default: 301.0** (Average atmospheric conditions).
+/// * `pol_idx` - Polarization (0 for Horizontal, 1 for Vertical). **Default: 1** (Vertical).
+/// * `epsilon` - Relative earth dielectric constant. **Default: 15.0** (Average/Standard ground).
+/// * `sigma` - Earth surface conductivity. **Default: 0.005** (Average/Standard ground).
 /// * `out_radius_m` - Output pointer where the resulting max radius in meters will be written.
 ///
 /// Returns 0 on success, or an error code.
@@ -149,74 +147,79 @@ pub unsafe extern "C" fn itm_calculate_signal_radius_c(
     let mut min_d_km = 0.001; // 1 meter
     let mut max_d_km = 2000.0; // ITM limit
 
-    let mut best_d_km = 0.0;
+    // Parallel multi-point search
+    // We'll perform 10 iterations, each evaluating 8 points in parallel.
+    // This gives roughly same or better precision than a 50rd-binary search but with fewer serial steps.
+    for _ in 0..10 {
+        let n_probes = 8;
+        let step_size = (max_d_km - min_d_km) / (n_probes + 1) as f64;
 
-    // Binary search over distance (km) to match max_loss_db
-    for _ in 0..50 {
-        let mid_d_km = (min_d_km + max_d_km) / 2.0;
-
-        match itm_area_tls(
-            h_tx_m,
-            h_rx_m,
-            0, // Random tx siting
-            0, // Random rx siting
-            mid_d_km,
-            delta_h_m,
-            climate_idx,
-            n_0,
-            f_mhz,
-            pol_idx,
-            epsilon,
-            sigma,
-            0, // Broadcast mode
-            50.0,
-            50.0,
-            50.0,
-        ) {
-            Ok((a_db, _, _)) => {
-                // If attenuation is less than max allowable loss, signal still reaches
-                if a_db <= max_loss_db {
-                    best_d_km = mid_d_km;
-                    min_d_km = mid_d_km;
-                } else {
-                    max_d_km = mid_d_km;
-                }
-            }
-            Err(ItmError::Success) => return 0,
-            Err(ItmError::SuccessWithWarnings) => return 1,
-            Err(ItmError::ErrorTxTerminalHeight) => return 2,
-            Err(ItmError::ErrorRxTerminalHeight) => return 3,
-            Err(ItmError::ErrorInvalidRadioClimate) => return 4,
-            Err(ItmError::ErrorRefractivity) => return 5,
-            Err(ItmError::ErrorFrequency) => return 6,
-            Err(ItmError::ErrorPolarization) => return 7,
-            Err(ItmError::ErrorEpsilon) => return 8,
-            Err(ItmError::ErrorSigma) => return 9,
-            Err(ItmError::ErrorMdvar) => return 10,
-            Err(ItmError::ErrorInvalidSituation) => return 11,
-            Err(ItmError::ErrorInvalidTime) => return 12,
-            Err(ItmError::ErrorInvalidLocation) => return 13,
-            Err(ItmError::ErrorSurfaceRefractivitySmall) => return 14,
-            Err(ItmError::ErrorSurfaceRefractivityLarge) => return 15,
-            Err(ItmError::ErrorEffectiveEarth) => return 16,
-            Err(ItmError::ErrorGroundImpedance) => return 17,
-            Err(ItmError::ErrorPathDistance) => return 18,
-            Err(ItmError::ErrorDeltaH) => return 19,
-            Err(ItmError::ErrorTxSitingCriteria) => return 20,
-            Err(ItmError::ErrorRxSitingCriteria) => return 21,
-            Err(ItmError::ErrorInvalidReliability) => return 22,
-            Err(ItmError::ErrorInvalidConfidence) => return 23,
-            Err(ItmError::Other(code)) => return code,
+        if step_size < 0.0001 {
+            break; // Better than 1 meter precision reached
         }
 
-        // Close enough threshold (within 1 meter accuracy)
-        if (max_d_km - min_d_km).abs() < 0.001 {
-            break;
+        let probes: Vec<f64> = (1..=n_probes)
+            .map(|i| min_d_km + step_size * i as f64)
+            .collect();
+
+        // Calculate losses for all probes in parallel
+        let results: Vec<Option<f64>> = probes
+            .par_iter()
+            .map(|&d| {
+                match itm_area_tls(
+                    h_tx_m,
+                    h_rx_m,
+                    0,
+                    0,
+                    d,
+                    delta_h_m,
+                    climate_idx,
+                    n_0,
+                    f_mhz,
+                    pol_idx,
+                    epsilon,
+                    sigma,
+                    0,
+                    50.0,
+                    50.0,
+                    50.0,
+                ) {
+                    Ok((loss, _, _)) => Some(loss),
+                    Err(_) => None,
+                }
+            })
+            .collect();
+
+        // Find the furthest successful probe that's under the loss threshold
+        let mut last_valid_idx: i32 = -1;
+        for (i, res) in results.iter().enumerate() {
+            if let Some(loss) = res {
+                if *loss <= max_loss_db {
+                    last_valid_idx = i as i32;
+                } else {
+                    break; // Losses usually increase with distance
+                }
+            } else {
+                break;
+            }
+        }
+
+        // Adjust search window
+        if last_valid_idx == -1 {
+            // All probes over threshold, must be in first segment
+            max_d_km = probes[0];
+        } else if last_valid_idx == (n_probes - 1) as i32 {
+            // All probes under threshold, must be in last segment
+            min_d_km = probes[last_valid_idx as usize];
+        } else {
+            // Threshold is between last_valid_idx and the next probe
+            min_d_km = probes[last_valid_idx as usize];
+            max_d_km = probes[last_valid_idx as usize + 1];
         }
     }
 
     unsafe {
-        *out_radius_m = best_d_km * 1000.0;
+        *out_radius_m = min_d_km * 1000.0;
     }
     0
 }
