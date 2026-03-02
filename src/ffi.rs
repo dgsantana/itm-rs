@@ -1,3 +1,10 @@
+// Copyright (c) 2026 Daniel Santana
+// SPDX-License-Identifier: MIT
+//
+// FFI (Foreign Function Interface) layer for C/C++ integration.
+// This module provides C-compatible exports for use in Unreal Engine and other
+// C/C++ applications.
+
 use crate::math::itm::{itm_area_tls, itm_p2p_tls};
 use rayon::prelude::*;
 use std::slice;

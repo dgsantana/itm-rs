@@ -1,6 +1,6 @@
 # ITM Rust C-API Usage Guide
 
-This document outlines how to integrate the `itm` Rust propagation model into C or C++ projects, specifically tailored toward Unreal Engine 5 implementations.
+This document outlines how to integrate the `itm` Rust propagation model into any C or C++ project, with practical examples for Unreal Engine 5 game development. The C-API is framework-agnostic and works with any C/C++ build system.
 
 ## Building the Library
 
@@ -12,6 +12,40 @@ Run the release build process:
 cargo build --release
 ```
 The resulting libraries will be located in the `target/release/` directory.
+
+---
+
+## Linking the Static Library
+
+### Windows (MSVC)
+When linking the static library (`itm.lib`) on Windows with MSVC, you must also link against the following system libraries required by the Rust standard library and threading runtime (used by `rayon`):
+
+- `ws2_32.lib` - Windows Sockets
+- `advapi32.lib` - Advanced Windows APIs
+- `userenv.lib` - User environment
+- `ntdll.lib` - NT Layer DLL
+- `bcrypt.lib` - Cryptographic primitives
+
+If you include `itm.h`, these are automatically linked via `#pragma comment(lib, ...)` directives. If manually configuring your build system, ensure these libraries are specified.
+
+### Unreal Engine 5
+In your `.Build.cs` file:
+```csharp
+PublicAdditionalLibraries.Add(Path.Combine(ModulePath, "ThirdParty", "itm", "itm.lib"));
+```
+
+The system libraries are automatically included by UE5 on Windows; no additional configuration needed.
+
+### Linux / macOS
+On Unix-like systems, the Rust standard library typically links against:
+- `pthread` (POSIX threads)
+- `dl` (dynamic linking)
+- `m` (math library)
+
+Example linker flags:
+```bash
+gcc my_app.c -L./target/release -litm -lpthread -ldl -lm -o my_app
+```
 
 ---
 

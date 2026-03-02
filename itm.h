@@ -1,3 +1,14 @@
+// Copyright (c) 2026 Daniel Santana
+// SPDX-License-Identifier: MIT
+//
+// ITM-RS C API Header
+// Rust implementation of the ITS Irregular Terrain Model (ITM)
+//
+// This is a derivative work of the original ITM developed by NTIA,
+// which is in the public domain as a work of the U.S. Federal Government.
+//
+// See LICENSE file for details.
+
 #ifndef ITM_H
 #define ITM_H
 

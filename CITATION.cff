@@ -1,0 +1,61 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+type: software
+title: "ITM-RS: Irregular Terrain Model for Rust"
+abstract: >
+  A high-performance, scientifically-validated Rust implementation of the 
+  ITS Irregular Terrain Model (ITM), also known as the Longley-Rice model.
+  Provides radio propagation prediction for frequencies between 20 MHz and 
+  20 GHz, supporting both point-to-point and area prediction modes.
+authors:
+  - family-names: Santana
+    given-names: Daniel
+    email: danielgsantana@gmail.com
+repository-code: "https://github.com/dgsantana/itm-rs"
+url: "https://github.com/dgsantana/itm-rs"
+license: MIT
+version: 1.0.0
+date-released: 2026-03-02
+
+references:
+  - type: report
+    authors:
+      - family-names: Hufford
+        given-names: George A.
+      - family-names: Longley
+        given-names: Anita G.
+      - family-names: Kissick
+        given-names: William A.
+    title: "A Guide to the Use of the ITS Irregular Terrain Model in the Area Prediction Mode"
+    institution:
+      name: "National Telecommunications and Information Administration"
+    year: 1982
+    number: "TR-82-100"
+    
+  - type: report
+    authors:
+      - family-names: Longley
+        given-names: Anita G.
+      - family-names: Rice
+        given-names: Phil L.
+    title: "Prediction of Tropospheric Radio Transmission Loss Over Irregular Terrain: A Computer Method - 1968"
+    institution:
+      name: "National Telecommunications and Information Administration"
+    year: 1968
+    number: "ERL 79-ITS 67"
+
+  - type: software
+    title: "ITS Irregular Terrain Model"
+    authors:
+      - name: "National Telecommunications and Information Administration"
+    repository-code: "https://github.com/NTIA/itm"
+    abstract: "Original C++ implementation"
+
+keywords:
+  - radio propagation
+  - ITM
+  - Longley-Rice
+  - telecommunications
+  - electromagnetic simulation
+  - path loss
+  - signal propagation

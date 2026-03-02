@@ -1,0 +1,47 @@
+# Configuration for cargo-deny
+# https://embarkstudios.github.io/cargo-deny/
+
+[advisories]
+# Warn on security vulnerabilities from RustSec Advisory Database
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "deny"
+notice = "warn"
+
+[licenses]
+# Only allow these licenses
+unlicensed = "deny"
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+]
+# Deny GPL licenses as they're incompatible with proprietary use
+deny = [
+    "GPL-2.0",
+    "GPL-3.0",
+    "AGPL-3.0",
+]
+copyleft = "deny"
+confidence-threshold = 0.8
+
+[bans]
+# Deny multiple versions of the same crate
+multiple-versions = "warn"
+wildcards = "warn"
+highlight = "all"
+
+# Skip checking these crates for multiple versions (common in the ecosystem)
+skip = []
+
+# Skip checking these trees of crates
+skip-tree = []
+
+[sources]
+# Ensure all dependencies come from crates.io
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = []

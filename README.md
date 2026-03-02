@@ -1,5 +1,13 @@
 # ITM-RS: Irregular Terrain Model for Rust
 
+[![CI](https://github.com/dgsantana/itm-rs/workflows/CI/badge.svg)](https://github.com/dgsantana/itm-rs/actions/workflows/ci.yml)
+[![NTIA Validation](https://github.com/dgsantana/itm-rs/workflows/NTIA%20Validation/badge.svg)](https://github.com/dgsantana/itm-rs/actions/workflows/validation.yml)
+[![Security Audit](https://github.com/dgsantana/itm-rs/workflows/Security%20Audit/badge.svg)](https://github.com/dgsantana/itm-rs/actions/workflows/security.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Rust Version](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
+[![Docs](https://img.shields.io/badge/docs-rustdoc-blue.svg)](https://docs.rs/itm)
+[![Crates.io](https://img.shields.io/crates/v/itm.svg)](https://crates.io/crates/itm)
+
 A high-performance, scientifically-validated Rust implementation of the **ITS Irregular Terrain Model (ITM)**, also known as the **Longley-Rice** model.
 
 ## Overview
@@ -39,7 +47,48 @@ This project is a pragmatic, high-fidelity port of the **NTIA/ITS C++ implementa
 
 Refer to the following documentation for integration details:
 - [C-API Usage Guide](C_API_USAGE.md): Detailed instructions for Unreal Engine and C/C++ integration.
-- [Error and Warning Reference](itm/ERRORS_AND_WARNINGS.md): Detailed breakdown of algorithm warning flags.
 
 ---
 *For technical inquiries regarding the underlying ITM model, refer to the [official NTIA/ITS documentation](https://github.com/NTIA/itm).*
+
+## Continuous Integration
+
+This project uses GitHub Actions for continuous integration and validation:
+
+- **CI Workflow**: Tests on Windows, Linux, and macOS with stable and beta Rust toolchains
+- **NTIA Validation**: Automated testing against NTIA reference implementation outputs  
+- **Security Audit**: Daily dependency vulnerability scanning with cargo-audit and cargo-deny
+- **Code Coverage**: Automated coverage reports via Codecov
+- **Release Automation**: Automatic cross-platform builds and crates.io publishing on version tags
+
+All tests must pass before merging, ensuring scientific accuracy and code quality.
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**Before submitting a PR:**
+1. Run `cargo test --all` to ensure all tests pass
+2. Run `cargo test --test ntia_validation` to validate against NTIA reference
+3. Run `cargo fmt` and `cargo clippy` to maintain code quality
+4. Add tests for new functionality
+
+## License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+### Original ITM License
+
+The original ITS Irregular Terrain Model developed by NTIA is in the **public domain** as a work of the U.S. Federal Government (Title 15 USC § 105). This Rust implementation is a derivative work that maintains compatibility with the original while adding modern safety guarantees and performance optimizations.
+
+### Attribution
+
+When using this library, please acknowledge:
+- **Original ITM**: National Telecommunications and Information Administration (NTIA)
+- **Original Authors**: Anita Longley and Phil Rice
+- **This Implementation**: Daniel Santana
+
+### References
+
+- Original NTIA ITM Repository: https://github.com/NTIA/itm
+- NTIA ITM License: https://github.com/NTIA/itm/blob/master/LICENSE.md

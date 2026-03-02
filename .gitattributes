@@ -1,0 +1,45 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code
+*.rs text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# C/C++ headers
+*.h text eol=lf
+*.c text eol=lf
+*.cpp text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+
+# Rust compiled files
+*.rlib binary
+*.so binary
+*.dll binary
+*.dylib binary
+*.a binary
+*.lib binary
+
+# Documentation
+LICENSE text eol=lf
+README.md text eol=lf
+CONTRIBUTING.md text eol=lf
+
+# Git attributes for linguist
+*.h linguist-language=C
+tests/* linguist-documentation=false

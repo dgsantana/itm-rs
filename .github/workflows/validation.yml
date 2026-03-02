@@ -1,0 +1,83 @@
+name: NTIA Validation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  schedule:
+    # Run validation tests weekly
+    - cron: '0 0 * * 0'
+
+jobs:
+  validate:
+    name: NTIA Reference Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-validation-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run TLS validation tests
+        run: |
+          cargo test --test ntia_validation test_area_tls -- --nocapture --test-threads=1
+
+      - name: Run comprehensive validation
+        run: |
+          cargo test --test ntia_validation \
+            test_area_tls_various_scenarios \
+            test_area_tls_terrain_roughness \
+            test_area_tls_climates \
+            test_area_tls_frequencies \
+            test_area_tls_polarizations \
+            -- --nocapture
+
+      - name: Generate validation report
+        if: always()
+        run: |
+          echo "# NTIA ITM Validation Report" > validation-report.md
+          echo "" >> validation-report.md
+          echo "**Date**: $(date)" >> validation-report.md
+          echo "**Commit**: ${{ github.sha }}" >> validation-report.md
+          echo "" >> validation-report.md
+          echo "## Test Results" >> validation-report.md
+          echo "" >> validation-report.md
+          cargo test --test ntia_validation -- --nocapture 2>&1 | tee -a validation-report.md || true
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: validation-report.md
+          retention-days: 30
+
+  accuracy-check:
+    name: Accuracy Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Run TLS accuracy test with output
+        run: |
+          echo "Testing Area TLS mode accuracy against NTIA reference..."
+          cargo test --test ntia_validation test_area_tls_ntia_reference -- --show-output --nocapture
+
+      - name: Check intermediate values
+        run: |
+          echo "Validating intermediate calculation values..."
+          cargo test --test ntia_validation test_area_tls_cr_equivalent_params -- --show-output --nocapture

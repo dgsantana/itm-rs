@@ -1,7 +1,17 @@
 [package]
 name = "itm"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
+authors = ["Daniel Santana <dgsantana@gmail.com>"]
+license = "MIT"
+description = "Rust implementation of the ITS Irregular Terrain Model (ITM) for radio propagation prediction"
+documentation = "https://docs.rs/itm"
+homepage = "https://github.com/dgsantana/itm-rs"
+repository = "https://github.com/dgsantana/itm-rs"
+readme = "README.md"
+keywords = ["radio", "propagation", "itm", "longley-rice", "telecommunications"]
+categories = ["science", "simulation"]
+rust-version = "1.85"
 
 [lib]
 crate-type = ["rlib", "cdylib", "staticlib"]
@@ -10,5 +20,17 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 num-complex = "0.4"
 rayon = "1.11"
 
+[dev-dependencies]
+# Add dev dependencies for testing here if needed
+
 [profile.release]
 opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+
+[profile.test]
+opt-level = 2
