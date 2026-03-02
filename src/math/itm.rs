@@ -42,6 +42,39 @@ pub enum ItmError {
     Other(i32) = 99,
 }
 
+impl ItmError {
+    /// Convert an `ItmError` to its integer error code.
+    pub const fn code(self) -> i32 {
+        match self {
+            ItmError::Success => 0,
+            ItmError::SuccessWithWarnings => 1,
+            ItmError::ErrorTxTerminalHeight => 2,
+            ItmError::ErrorRxTerminalHeight => 3,
+            ItmError::ErrorInvalidRadioClimate => 4,
+            ItmError::ErrorRefractivity => 5,
+            ItmError::ErrorFrequency => 6,
+            ItmError::ErrorPolarization => 7,
+            ItmError::ErrorEpsilon => 8,
+            ItmError::ErrorSigma => 9,
+            ItmError::ErrorMdvar => 10,
+            ItmError::ErrorInvalidSituation => 11,
+            ItmError::ErrorInvalidTime => 12,
+            ItmError::ErrorInvalidLocation => 13,
+            ItmError::ErrorSurfaceRefractivitySmall => 14,
+            ItmError::ErrorSurfaceRefractivityLarge => 15,
+            ItmError::ErrorEffectiveEarth => 16,
+            ItmError::ErrorGroundImpedance => 17,
+            ItmError::ErrorPathDistance => 18,
+            ItmError::ErrorDeltaH => 19,
+            ItmError::ErrorTxSitingCriteria => 20,
+            ItmError::ErrorRxSitingCriteria => 21,
+            ItmError::ErrorInvalidReliability => 22,
+            ItmError::ErrorInvalidConfidence => 23,
+            ItmError::Other(code) => code,
+        }
+    }
+}
+
 impl fmt::Display for ItmError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)

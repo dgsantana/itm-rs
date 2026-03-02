@@ -1,4 +1,4 @@
-use crate::math::itm::{ItmError, itm_area_tls, itm_p2p_tls};
+use crate::math::itm::{itm_area_tls, itm_p2p_tls};
 use rayon::prelude::*;
 use std::slice;
 
@@ -6,6 +6,11 @@ use std::slice;
 /// All pointers must be valid. Warnings are written to the `warnings` pointer.
 ///
 /// Returns 0 on success, or an error code > 0 on failure.
+///
+/// # Safety
+/// - `out_a_db` must be a non-null, properly aligned pointer to writable `f64` storage.
+/// - `out_warnings` must be a non-null, properly aligned pointer to writable `u32` storage.
+/// - Both output pointers must remain valid for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn itm_area_tls_c(
     h_tx_m: f64,
@@ -56,31 +61,7 @@ pub unsafe extern "C" fn itm_area_tls_c(
             }
             0 // Success
         }
-        Err(ItmError::Success) => 0,
-        Err(ItmError::SuccessWithWarnings) => 1,
-        Err(ItmError::ErrorTxTerminalHeight) => 2,
-        Err(ItmError::ErrorRxTerminalHeight) => 3,
-        Err(ItmError::ErrorInvalidRadioClimate) => 4,
-        Err(ItmError::ErrorRefractivity) => 5,
-        Err(ItmError::ErrorFrequency) => 6,
-        Err(ItmError::ErrorPolarization) => 7,
-        Err(ItmError::ErrorEpsilon) => 8,
-        Err(ItmError::ErrorSigma) => 9,
-        Err(ItmError::ErrorMdvar) => 10,
-        Err(ItmError::ErrorInvalidSituation) => 11,
-        Err(ItmError::ErrorInvalidTime) => 12,
-        Err(ItmError::ErrorInvalidLocation) => 13,
-        Err(ItmError::ErrorSurfaceRefractivitySmall) => 14,
-        Err(ItmError::ErrorSurfaceRefractivityLarge) => 15,
-        Err(ItmError::ErrorEffectiveEarth) => 16,
-        Err(ItmError::ErrorGroundImpedance) => 17,
-        Err(ItmError::ErrorPathDistance) => 18,
-        Err(ItmError::ErrorDeltaH) => 19,
-        Err(ItmError::ErrorTxSitingCriteria) => 20,
-        Err(ItmError::ErrorRxSitingCriteria) => 21,
-        Err(ItmError::ErrorInvalidReliability) => 22,
-        Err(ItmError::ErrorInvalidConfidence) => 23,
-        Err(ItmError::Other(code)) => code,
+        Err(err) => err.code(),
     }
 }
 
@@ -105,6 +86,10 @@ pub unsafe extern "C" fn itm_area_tls_c(
 /// * `out_radius_m` - Output pointer where the resulting max radius in meters will be written.
 ///
 /// Returns 0 on success, or an error code.
+///
+/// # Safety
+/// - `out_radius_m` must be a non-null, properly aligned pointer to writable `f64` storage.
+/// - `out_radius_m` must remain valid for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn itm_calculate_signal_radius_c(
     f_mhz: f64,
@@ -208,7 +193,7 @@ pub unsafe extern "C" fn itm_calculate_signal_radius_c(
         if last_valid_idx == -1 {
             // All probes over threshold, must be in first segment
             max_d_km = probes[0];
-        } else if last_valid_idx == (n_probes - 1) as i32 {
+        } else if last_valid_idx == (n_probes - 1) {
             // All probes under threshold, must be in last segment
             min_d_km = probes[last_valid_idx as usize];
         } else {
@@ -228,6 +213,13 @@ pub unsafe extern "C" fn itm_calculate_signal_radius_c(
 /// `pfl_data` must be a valid pointer to an array of `pfl_len` doubles.
 /// The array format must match ITM expectations: [N-1, spacing_m, elev_1, elev_2, ... elev_N]
 /// Returns 0 on success, or an error code > 0 on failure.
+///
+/// # Safety
+/// - `pfl_data` must be non-null and point to a readable array of at least `pfl_len` `f64` values.
+/// - `pfl_data` must be properly aligned for `f64` and remain valid for the duration of the call.
+/// - `out_a_db` must be a non-null, properly aligned pointer to writable `f64` storage.
+/// - `out_warnings` must be a non-null, properly aligned pointer to writable `u32` storage.
+/// - Output pointers must remain valid for the duration of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn itm_p2p_tls_c(
     h_tx_m: f64,
@@ -280,31 +272,7 @@ pub unsafe extern "C" fn itm_p2p_tls_c(
             }
             0 // Success
         }
-        Err(ItmError::Success) => 0,
-        Err(ItmError::SuccessWithWarnings) => 1,
-        Err(ItmError::ErrorTxTerminalHeight) => 2,
-        Err(ItmError::ErrorRxTerminalHeight) => 3,
-        Err(ItmError::ErrorInvalidRadioClimate) => 4,
-        Err(ItmError::ErrorRefractivity) => 5,
-        Err(ItmError::ErrorFrequency) => 6,
-        Err(ItmError::ErrorPolarization) => 7,
-        Err(ItmError::ErrorEpsilon) => 8,
-        Err(ItmError::ErrorSigma) => 9,
-        Err(ItmError::ErrorMdvar) => 10,
-        Err(ItmError::ErrorInvalidSituation) => 11,
-        Err(ItmError::ErrorInvalidTime) => 12,
-        Err(ItmError::ErrorInvalidLocation) => 13,
-        Err(ItmError::ErrorSurfaceRefractivitySmall) => 14,
-        Err(ItmError::ErrorSurfaceRefractivityLarge) => 15,
-        Err(ItmError::ErrorEffectiveEarth) => 16,
-        Err(ItmError::ErrorGroundImpedance) => 17,
-        Err(ItmError::ErrorPathDistance) => 18,
-        Err(ItmError::ErrorDeltaH) => 19,
-        Err(ItmError::ErrorTxSitingCriteria) => 20,
-        Err(ItmError::ErrorRxSitingCriteria) => 21,
-        Err(ItmError::ErrorInvalidReliability) => 22,
-        Err(ItmError::ErrorInvalidConfidence) => 23,
-        Err(ItmError::Other(code)) => code,
+        Err(err) => err.code(),
     }
 }
 
@@ -375,7 +343,7 @@ mod ffi_tests {
         let mut a_db = 0.0;
         let mut warnings = 0u32;
         // Mock a basic array: 2 points, 100.0 spacing, 0.0 elev, 0.0 elev
-        let pfl = vec![2.0, 100.0, 0.0, 0.0, 0.0];
+        let pfl = [2.0, 100.0, 0.0, 0.0, 0.0];
 
         unsafe {
             let res = itm_p2p_tls_c(
