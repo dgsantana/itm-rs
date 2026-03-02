@@ -45,7 +45,7 @@ use num_complex::Complex;
 /// # Examples
 ///
 /// ```
-/// use itm::math::free_space_loss;
+/// use itm::math::propagation::free_space_loss;
 ///
 /// // 1 km distance at 1000 MHz (1 GHz)
 /// let loss1 = free_space_loss(1000.0, 1000.0);
@@ -99,7 +99,7 @@ pub enum Polarization {
 /// # Examples
 ///
 /// ```
-/// use itm::math::{initialize_point_to_point, Polarization};
+/// use itm::math::propagation::{initialize_point_to_point, Polarization};
 ///
 /// let (z_g, gamma_e, n_s) = initialize_point_to_point(
 ///     900.0,

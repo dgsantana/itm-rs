@@ -44,7 +44,7 @@ use std::f64::consts::SQRT_2;
 /// # Examples
 ///
 /// ```
-/// use itm::math::f_function;
+/// use itm::math::scatter::f_function;
 ///
 /// // Calculate attenuation for a 5 km path
 /// let f = f_function(5_000.0);
@@ -128,7 +128,7 @@ pub fn f_function(theta_distance: f64) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use itm::math::troposcatter_loss;
+/// use itm::math::scatter::troposcatter_loss;
 ///
 /// let d = 100_000.0; // 100 km
 /// let theta_hzn = [0.01, 0.01]; // horizon angles in radians

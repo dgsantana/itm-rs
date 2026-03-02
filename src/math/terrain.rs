@@ -54,7 +54,7 @@ use std::f64::consts::PI;
 /// # Examples
 ///
 /// ```
-/// use itm::math::terrain_roughness;
+/// use itm::math::terrain::terrain_roughness;
 ///
 /// // Calculate roughness for a 10 km path with 100m elevation variation
 /// let roughness = terrain_roughness(10_000.0, 100.0);
@@ -210,7 +210,7 @@ pub enum SitingCriteria {
 /// # Examples
 ///
 /// ```
-/// use itm::math::{initialize_area, SitingCriteria};
+/// use itm::math::terrain::{initialize_area, SitingCriteria};
 ///
 /// let site_criteria = [SitingCriteria::Random, SitingCriteria::Careful];
 /// let h_m = [30.0, 20.0];
@@ -295,7 +295,7 @@ pub fn initialize_area(
 /// # Examples
 ///
 /// ```
-/// use itm::math::find_horizons;
+/// use itm::math::terrain::find_horizons;
 ///
 /// // Minimal terrain profile: 3 points, 1 km spacing, flat terrain at 0 m.
 /// let pfl = [3.0, 1000.0, 0.0, 0.0, 0.0];
@@ -376,7 +376,7 @@ pub fn find_horizons(pfl: &[f64], a_e: f64, h: [f64; 2]) -> ([f64; 2], [f64; 2])
 /// # Examples
 ///
 /// ```
-/// use itm::math::compute_delta_h;
+/// use itm::math::terrain::compute_delta_h;
 ///
 /// let pfl = [5.0, 1000.0, 0.0, 10.0, 5.0, 12.0, 8.0];
 /// let delta_h = compute_delta_h(&pfl, 0.0, 4000.0);

@@ -5,7 +5,7 @@
 //! functions (area and point-to-point modes) and input validation. It
 //! reuses lower-level math utilities defined elsewhere in the `math` module.
 
-use super::longley_rice;
+use super::longley_rice::longley_rice;
 use super::propagation::{free_space_loss, initialize_point_to_point};
 use super::terrain::{SitingCriteria, initialize_area};
 use super::variability::{Climate, VariabilityMode, variability_loss};

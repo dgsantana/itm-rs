@@ -106,8 +106,8 @@ pub fn curve(c1: f64, c2: f64, x1: f64, x2: f64, x3: f64, d_e_m: f64) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use itm::math::{variability_loss, Climate, VariabilityMode};
-/// use itm::math::variability_warnings;
+/// use itm::math::variability::{variability_loss, Climate, VariabilityMode};
+/// use itm::math::variability::variability_warnings;
 ///
 /// let h_e_m = [30.0, 30.0];
 /// let mut warnings = 0u32;

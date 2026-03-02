@@ -31,7 +31,7 @@
 /// # Examples
 ///
 /// ```
-/// use itm::math::fresnel_integral;
+/// use itm::math::diffraction::fresnel_integral;
 ///
 /// // Small diffraction parameter
 /// let loss1 = fresnel_integral(2.0);
@@ -153,7 +153,7 @@ use num_complex::Complex;
 /// # Examples
 ///
 /// ```
-/// use itm::math::smooth_earth_diffraction;
+/// use itm::math::diffraction::smooth_earth_diffraction;
 /// use num_complex::Complex;
 ///
 /// let d_hzn = [50_000.0, 50_000.0];

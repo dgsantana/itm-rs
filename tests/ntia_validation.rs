@@ -12,7 +12,7 @@
 //!
 //! Tolerance: ±0.2 dB is considered acceptable for floating point differences
 
-use itm::math::{itm_area_cr, itm_area_tls, itm_p2p_cr};
+use itm::math::itm::{itm_area_cr, itm_area_tls, itm_p2p_cr};
 
 const TOLERANCE_DB: f64 = 0.2;
 
