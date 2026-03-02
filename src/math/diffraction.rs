@@ -1,7 +1,8 @@
-/// Diffraction modeling and calculations.
-///
-/// This module contains functions for modeling radio wave diffraction around obstacles,
-/// including Fresnel integral approximations and knife-edge diffraction calculations.
+#![allow(clippy::too_many_arguments)]
+//!! Diffraction modeling and calculations.
+//!!
+//!! This module contains functions for modeling radio wave diffraction around obstacles,
+//!! including Fresnel integral approximations and knife-edge diffraction calculations.
 
 /// Computes the approximate edge diffraction loss using the Fresnel integral.
 ///
@@ -241,7 +242,7 @@ fn height_function(x_km: f64, k: f64) -> f64 {
             result = -117.0;
 
             if x_km > 1.0 {
-                result = 17.372 * x_km.ln() + result;
+                result += 17.372 * x_km.ln();
             }
         } else {
             result = 2.5e-5 * x_km.powi(2) / k - 8.686 * w - 15.0;
@@ -341,7 +342,7 @@ pub fn diffraction_loss(
 
     // Avoid division by zero
     if q <= 0.0 {
-        q = std::f64::EPSILON;
+        q = f64::EPSILON;
     }
 
     let term1 = (1.0 + qk / q).sqrt();
@@ -356,8 +357,7 @@ pub fn diffraction_loss(
     let w = 25.1 / (25.1 + q2.sqrt().max(0.0));
 
     // Final combined diffraction loss
-    let a_d_db = w * a_se_db + (1.0 - w) * a_k_db + a_fo_db;
-    a_d_db
+    w * a_se_db + (1.0 - w) * a_k_db + a_fo_db
 }
 
 #[cfg(test)]

@@ -1,7 +1,8 @@
-/// Variability loss calculations for ITM.
-///
-/// This module contains functions for time, location, and situation variability
-/// computations used to derive statistical propagation losses.
+#![allow(clippy::too_many_arguments)]
+//!! Variability loss calculations for ITM.
+//!!
+//!! This module contains functions for time, location, and situation variability
+//!! computations used to derive statistical propagation losses.
 use crate::math::statistics::inverse_ccdf;
 use crate::math::terrain::terrain_roughness;
 

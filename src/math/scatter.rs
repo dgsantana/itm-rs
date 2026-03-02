@@ -1,12 +1,13 @@
+#![allow(clippy::too_many_arguments)]
+//!! Tropospheric scatter propagation calculations.
+//!!
+//!! This module contains functions for modeling tropospheric scatter propagation,
+//!! a mode where radio waves are scattered by atmospheric turbulence and
+//!! irregularities in the troposphere.
 use crate::math::constants::{
     HEIGHT_CONSTANT_H, SMOOTHING_DISTANCE_D0, TROPOSCATTER_UNDEFINED_SENTINEL, WAVENUMBER_DIVISOR,
 };
 use crate::math::height_gain::h0_function;
-/// Tropospheric scatter propagation calculations.
-///
-/// This module contains functions for modeling tropospheric scatter propagation,
-/// a mode where radio waves are scattered by atmospheric turbulence and
-/// irregularities in the troposphere.
 use std::f64::consts::SQRT_2;
 
 /// Computes the attenuation function F(θ·d) for scatter propagation.

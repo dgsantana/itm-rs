@@ -1,7 +1,7 @@
-/// Statistical functions and distributions.
-///
-/// This module contains statistical utility functions used in radio propagation
-/// modeling, including probability distributions and related calculations.
+//!! Statistical functions and distributions.
+//!!
+//!! This module contains statistical utility functions used in radio propagation
+//!! modeling, including probability distributions and related calculations.
 
 /// Computes the inverse complementary cumulative distribution function (inverse CCDF).
 ///
@@ -270,7 +270,7 @@ mod tests {
 
             // Verify reasonable range (normal distribution is typically within ±4σ for practical purposes)
             assert!(
-                result.abs() < 4.0 || q < 0.0001 || q > 0.9999,
+                result.abs() < 4.0 || !(0.0001..=0.9999).contains(&q),
                 "Result {} seems unreasonable for q={}",
                 result,
                 q

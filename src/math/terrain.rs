@@ -1,7 +1,7 @@
-/// Terrain profile analysis and calculations.
-///
-/// This module contains functions for analyzing terrain profiles, including
-/// statistical fitting methods and terrain characterization for radio propagation models.
+//!! Terrain profile analysis and calculations.
+//!!
+//!! This module contains functions for analyzing terrain profiles, including
+//!! statistical fitting methods and terrain characterization for radio propagation models.
 use std::f64::consts::PI;
 
 /// Computes the terrain roughness parameter (interdecile range) for radio propagation.

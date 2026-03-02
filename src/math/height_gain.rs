@@ -1,8 +1,8 @@
-/// Height gain factor calculations.
-///
-/// This module contains functions for computing height gain factors used in
-/// radio propagation models, including curve fitting and interpolation for
-/// different terrain roughness categories.
+//!! Height gain factor calculations.
+//!!
+//!! This module contains functions for computing height gain factors used in
+//!! radio propagation models, including curve fitting and interpolation for
+//!! different terrain roughness categories.
 
 /// Curve fit helper function for h0 calculations.
 ///

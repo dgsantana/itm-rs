@@ -1,8 +1,10 @@
+#![allow(clippy::too_many_arguments)]
+//!! Radio propagation models and calculations.
+//!!
+//!! This module contains functions for calculating basic radio propagation parameters,
+//!! including free space path loss and related transmission characteristics.
+
 use crate::math::constants::GAMMA_A;
-/// Radio propagation models and calculations.
-///
-/// This module contains functions for calculating basic radio propagation parameters,
-/// including free space path loss and related transmission characteristics.
 use num_complex::Complex;
 
 /// Computes the free space loss (path loss) between two points in free space.
@@ -198,7 +200,7 @@ pub fn line_of_sight_loss(
     // q = |R_e|^2
     let mut q = r_e.re.powi(2) + r_e.im.powi(2);
     if q <= 0.0 {
-        q = std::f64::EPSILON;
+        q = f64::EPSILON;
     }
     if q < 0.25 || q < sin_psi {
         let scale = (sin_psi / q).sqrt();

@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments)]
 /*!
 Core Longley-Rice helpers extracted from the ITM orchestration.
 
@@ -121,7 +122,7 @@ pub(crate) fn longley_rice(
         warnings |= itm_warnings::WARN_SURFACE_REFRACTIVITY;
     }
 
-    if a_e < 4_000_000.0 || a_e > 13_333_333.0 {
+    if !(4_000_000.0..=13_333_333.0).contains(&a_e) {
         return Err(ItmError::ErrorEffectiveEarth);
     }
 
