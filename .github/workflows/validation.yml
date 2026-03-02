@@ -37,13 +37,15 @@ jobs:
 
       - name: Run comprehensive validation
         run: |
-          cargo test --test ntia_validation \
+          for test_name in \
             test_area_tls_various_scenarios \
             test_area_tls_terrain_roughness \
             test_area_tls_climates \
             test_area_tls_frequencies \
-            test_area_tls_polarizations \
-            -- --nocapture
+            test_area_tls_polarizations
+          do
+            cargo test --test ntia_validation "$test_name" -- --nocapture
+          done
 
       - name: Generate validation report
         if: always()
