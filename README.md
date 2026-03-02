@@ -5,8 +5,6 @@
 [![Security Audit](https://github.com/dgsantana/itm-rs/workflows/Security%20Audit/badge.svg)](https://github.com/dgsantana/itm-rs/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
-[![Docs](https://img.shields.io/badge/docs-rustdoc-blue.svg)](https://docs.rs/itm-longley-rice)
-[![Crates.io](https://img.shields.io/crates/v/itm-longley-rice.svg)](https://crates.io/crates/itm-longley-rice)
 
 A high-performance, scientifically-validated Rust implementation of the **ITS Irregular Terrain Model (ITM)**, also known as the **Longley-Rice** model.
 
