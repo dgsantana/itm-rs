@@ -3,6 +3,16 @@
 
 #include <stdint.h>
 
+// Windows MSVC: Link against required system libraries for Rust std + threading (rayon)
+// Note: When using the static library, these are additional dependencies beyond
+// what a typical C++ application already links (kernel32, msvcrt, etc.)
+#if defined(_MSC_VER)
+    #pragma comment(lib, "ws2_32.lib")      // Windows Sockets (required by std::net)
+    #pragma comment(lib, "advapi32.lib")    // Advanced Windows APIs (required by std::thread)
+    #pragma comment(lib, "userenv.lib")     // User environment (required by std::env)
+    #pragma comment(lib, "bcrypt.lib")      // Cryptographic primitives (required by std::collections::HashMap)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
