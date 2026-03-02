@@ -5,7 +5,7 @@
 // This module provides C-compatible exports for use in Unreal Engine and other
 // C/C++ applications.
 
-use crate::math::itm::{itm_area_tls, itm_p2p_tls};
+use crate::math::{itm_area_tls, itm_p2p_tls};
 use rayon::prelude::*;
 use std::slice;
 

@@ -5,10 +5,10 @@
 //! functions (area and point-to-point modes) and input validation. It
 //! reuses lower-level math utilities defined elsewhere in the `math` module.
 
-// use direct module functions from `crate::math::longley_rice` where needed
-use crate::math::propagation::{free_space_loss, initialize_point_to_point};
-use crate::math::terrain::{SitingCriteria, initialize_area};
-use crate::math::variability::{Climate, VariabilityMode, variability_loss};
+use super::longley_rice;
+use super::propagation::{free_space_loss, initialize_point_to_point};
+use super::terrain::{SitingCriteria, initialize_area};
+use super::variability::{Climate, VariabilityMode, variability_loss};
 
 use std::fmt;
 
@@ -321,7 +321,7 @@ pub fn itm_area_tls(
 
     // Call Longley-Rice
     let mut warnings_u32 = warnings_mask;
-    let lr_result = crate::math::longley_rice::longley_rice(
+    let lr_result = longley_rice(
         theta_hzn, f_mhz, z_g, d_hzn_m, h_e_m, gamma_e, n_s, delta_h_m, h_meter, d_m, 0,
     )?;
     let a_ref_db = lr_result.a_ref;

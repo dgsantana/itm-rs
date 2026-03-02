@@ -4,7 +4,7 @@
 //!! This module contains functions for calculating basic radio propagation parameters,
 //!! including free space path loss and related transmission characteristics.
 
-use crate::math::constants::GAMMA_A;
+use super::constants::GAMMA_A;
 use num_complex::Complex;
 
 /// Computes the free space loss (path loss) between two points in free space.

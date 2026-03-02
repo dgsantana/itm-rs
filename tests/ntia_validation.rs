@@ -12,7 +12,7 @@
 //!
 //! Tolerance: ±0.2 dB is considered acceptable for floating point differences
 
-use itm::math::itm::{itm_area_cr, itm_area_tls, itm_p2p_cr};
+use itm::math::{itm_area_cr, itm_area_tls, itm_p2p_cr};
 
 const TOLERANCE_DB: f64 = 0.2;
 
@@ -159,7 +159,7 @@ fn test_area_tls_cr_equivalent_params() {
 ///
 /// NOTE: NTIA reference test files appear to be from older ITM version.
 /// Our implementation matches current NTIA C++ source exactly.
-/// See NTIA issue #25: reference test outputs cannot be reproduced by current code.
+/// See NTIA issue [#25](https://github.com/NTIA/itm/issues/25): reference test outputs cannot be reproduced by current code.
 #[test]
 #[ignore = "NTIA reference test files from older ITM version (see NTIA issue #25)"]
 fn test_area_cr_ntia_reference_d10km() {

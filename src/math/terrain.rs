@@ -265,25 +265,6 @@ pub fn initialize_area(
     (h_e, d_hzn, theta_hzn)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_initialize_area_outputs_finite() {
-        let site_criteria = [SitingCriteria::Random, SitingCriteria::VeryCareful];
-        let h = [30.0, 20.0];
-
-        let (h_e, d_hzn, theta_hzn) = initialize_area(site_criteria, 1.57e-7, 90.0, h);
-
-        for i in 0..2 {
-            assert!(h_e[i].is_finite());
-            assert!(d_hzn[i].is_finite());
-            assert!(theta_hzn[i].is_finite());
-        }
-    }
-}
-
 /// Computes the radio horizons for the terminals.
 ///
 /// This function scans the terrain profile to determine the radio horizon angles
@@ -365,23 +346,6 @@ pub fn find_horizons(pfl: &[f64], a_e: f64, h: [f64; 2]) -> ([f64; 2], [f64; 2])
     }
 
     (theta_hzn, d_hzn)
-}
-
-#[cfg(test)]
-mod find_horizons_tests {
-    use super::find_horizons;
-
-    #[test]
-    fn test_find_horizons_flat_profile() {
-        let pfl = [3.0, 1000.0, 0.0, 0.0, 0.0];
-        let h = [10.0, 10.0];
-        let (theta_hzn, d_hzn) = find_horizons(&pfl, 8.5e6, h);
-
-        assert!(theta_hzn[0].is_finite());
-        assert!(theta_hzn[1].is_finite());
-        assert!(d_hzn[0] > 0.0);
-        assert!(d_hzn[1] > 0.0);
-    }
 }
 
 /// Computes the terrain irregularity parameter (delta_h).
@@ -479,18 +443,6 @@ pub fn compute_delta_h(pfl: &[f64], d_start: f64, d_end: f64) -> f64 {
     delta_h_d / smoothing
 }
 
-#[cfg(test)]
-mod compute_delta_h_tests {
-    use super::compute_delta_h;
-
-    #[test]
-    fn test_compute_delta_h_non_negative() {
-        let pfl = [5.0, 1000.0, 0.0, 10.0, 5.0, 12.0, 8.0];
-        let delta_h = compute_delta_h(&pfl, 0.0, 4000.0);
-        assert!(delta_h >= 0.0);
-    }
-}
-
 /// Result of the QuickPfl profile preprocessing.
 pub struct QuickPflResult {
     /// Horizon angles in radians [transmitter, receiver].
@@ -533,5 +485,43 @@ pub fn quick_pfl(pfl: &[f64], gamma_e: f64, h: [f64; 2]) -> QuickPflResult {
         h_e,
         delta_h,
         d,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_initialize_area_outputs_finite() {
+        let site_criteria = [SitingCriteria::Random, SitingCriteria::VeryCareful];
+        let h = [30.0, 20.0];
+
+        let (h_e, d_hzn, theta_hzn) = initialize_area(site_criteria, 1.57e-7, 90.0, h);
+
+        for i in 0..2 {
+            assert!(h_e[i].is_finite());
+            assert!(d_hzn[i].is_finite());
+            assert!(theta_hzn[i].is_finite());
+        }
+    }
+
+    #[test]
+    fn test_find_horizons_flat_profile() {
+        let pfl = [3.0, 1000.0, 0.0, 0.0, 0.0];
+        let h = [10.0, 10.0];
+        let (theta_hzn, d_hzn) = find_horizons(&pfl, 8.5e6, h);
+
+        assert!(theta_hzn[0].is_finite());
+        assert!(theta_hzn[1].is_finite());
+        assert!(d_hzn[0] > 0.0);
+        assert!(d_hzn[1] > 0.0);
+    }
+
+    #[test]
+    fn test_compute_delta_h_non_negative() {
+        let pfl = [5.0, 1000.0, 0.0, 10.0, 5.0, 12.0, 8.0];
+        let delta_h = compute_delta_h(&pfl, 0.0, 4000.0);
+        assert!(delta_h >= 0.0);
     }
 }

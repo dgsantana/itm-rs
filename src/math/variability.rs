@@ -3,8 +3,8 @@
 //!!
 //!! This module contains functions for time, location, and situation variability
 //!! computations used to derive statistical propagation losses.
-use crate::math::statistics::inverse_ccdf;
-use crate::math::terrain::terrain_roughness;
+use super::statistics::inverse_ccdf;
+use super::terrain::terrain_roughness;
 
 const THIRD: f64 = 1.0 / 3.0;
 const A_9000_M: f64 = 9_000_000.0;
@@ -107,7 +107,7 @@ pub fn curve(c1: f64, c2: f64, x1: f64, x2: f64, x3: f64, d_e_m: f64) -> f64 {
 ///
 /// ```
 /// use itm::math::{variability_loss, Climate, VariabilityMode};
-/// use itm::math::variability::variability_warnings;
+/// use itm::math::variability_warnings;
 ///
 /// let h_e_m = [30.0, 30.0];
 /// let mut warnings = 0u32;

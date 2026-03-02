@@ -24,16 +24,16 @@
 //! - ITM Technical Note 101 (TN101): Detailed implementation notes and equations
 
 // Submodules
-pub mod constants;
-pub mod diffraction;
-pub mod height_gain;
-pub mod itm;
-pub mod longley_rice;
-pub mod propagation;
-pub mod scatter;
-pub mod statistics;
-pub mod terrain;
-pub mod variability;
+mod constants;
+mod diffraction;
+mod height_gain;
+mod itm;
+mod longley_rice;
+mod propagation;
+mod scatter;
+mod statistics;
+mod terrain;
+mod variability;
 
 // Re-export public API for backward compatibility and convenience
 pub use constants::{
@@ -44,13 +44,15 @@ pub use constants::{
 };
 pub use diffraction::{fresnel_integral, smooth_earth_diffraction};
 pub use height_gain::{h0_curve, h0_function};
-pub use itm::{IntermediateValues, ItmError, itm_area_tls, validate_inputs};
+pub use itm::{
+    IntermediateValues, ItmError, itm_area_cr, itm_area_tls, itm_p2p_cr, itm_p2p_tls,
+    validate_inputs,
+};
+pub(crate) use longley_rice::longley_rice;
 pub use propagation::{Polarization, free_space_loss, initialize_point_to_point};
 pub use scatter::{f_function, troposcatter_loss};
 pub use statistics::{inverse_ccdf, inverse_complementary_cumulative_distribution_function};
 pub use terrain::{
     SitingCriteria, compute_delta_h, find_horizons, initialize_area, terrain_roughness,
 };
-pub use variability::{Climate, VariabilityMode, curve, variability_loss};
-
-// Re-export crate-internal functions
+pub use variability::{Climate, VariabilityMode, curve, variability_loss, variability_warnings};

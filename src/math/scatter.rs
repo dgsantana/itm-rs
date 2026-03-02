@@ -4,10 +4,10 @@
 //!! This module contains functions for modeling tropospheric scatter propagation,
 //!! a mode where radio waves are scattered by atmospheric turbulence and
 //!! irregularities in the troposphere.
-use crate::math::constants::{
+use super::constants::{
     HEIGHT_CONSTANT_H, SMOOTHING_DISTANCE_D0, TROPOSCATTER_UNDEFINED_SENTINEL, WAVENUMBER_DIVISOR,
 };
-use crate::math::height_gain::h0_function;
+use super::height_gain::h0_function;
 use std::f64::consts::SQRT_2;
 
 /// Computes the attenuation function F(θ·d) for scatter propagation.
@@ -44,7 +44,7 @@ use std::f64::consts::SQRT_2;
 /// # Examples
 ///
 /// ```
-/// use itm::math::scatter::f_function;
+/// use itm::math::f_function;
 ///
 /// // Calculate attenuation for a 5 km path
 /// let f = f_function(5_000.0);
@@ -128,7 +128,7 @@ pub fn f_function(theta_distance: f64) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use itm::math::scatter::troposcatter_loss;
+/// use itm::math::troposcatter_loss;
 ///
 /// let d = 100_000.0; // 100 km
 /// let theta_hzn = [0.01, 0.01]; // horizon angles in radians

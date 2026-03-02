@@ -1,29 +1,28 @@
 #![allow(clippy::too_many_arguments)]
-/*!
-Core Longley-Rice helpers extracted from the ITM orchestration.
+//!
+//! Core Longley-Rice helpers extracted from the ITM orchestration.
+//!
+//! This module contains the lower-level Longley-Rice pieces used by the public
+//! wrappers in `itm.rs`. It is intended to be an internal implementation module
+//! that provides:
+//!
+//! - `quick_pfl` — a lightweight profile preprocessor used by the P2P path
+//!   interfaces (temporary helper until a full profile port exists)
+//! - `diffraction_loss` — a wrapper over the diffraction implementation (currently
+//!   using Vogler/smooth-earth approximation)
+//! - `line_of_sight_loss` — a small wrapper that proxies to diffraction logic for
+//!   short distances
+//! - `longley_rice` — the (partial) Longley-Rice core algorithm used to compute
+//!   the reference attenuation `A_ref` and select propagation mode.
+//!
+//! Note: this file intentionally focuses on the algorithmic core and keeps public
+//! exposure crate-local (`pub(crate)`) so the high-level API in `itm.rs` can stay
+//! stable and small.
 
-This module contains the lower-level Longley-Rice pieces used by the public
-wrappers in `itm.rs`. It is intended to be an internal implementation module
-that provides:
-
-- `quick_pfl` — a lightweight profile preprocessor used by the P2P path
-  interfaces (temporary helper until a full profile port exists)
-- `diffraction_loss` — a wrapper over the diffraction implementation (currently
-  using Vogler/smooth-earth approximation)
-- `line_of_sight_loss` — a small wrapper that proxies to diffraction logic for
-  short distances
-- `longley_rice` — the (partial) Longley-Rice core algorithm used to compute
-  the reference attenuation `A_ref` and select propagation mode.
-
-Note: this file intentionally focuses on the algorithmic core and keeps public
-exposure crate-local (`pub(crate)`) so the high-level API in `itm.rs` can stay
-stable and small.
-*/
-
-use crate::math::diffraction::diffraction_loss;
-use crate::math::itm::{ItmError, warnings as itm_warnings};
-use crate::math::propagation::line_of_sight_loss;
-use crate::math::scatter::troposcatter_loss;
+use super::diffraction::diffraction_loss;
+use super::itm::{ItmError, warnings as itm_warnings};
+use super::propagation::line_of_sight_loss;
+use super::scatter::troposcatter_loss;
 use num_complex::Complex;
 
 /// Result of the Longley-Rice core algorithm.

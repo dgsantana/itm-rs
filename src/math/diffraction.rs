@@ -259,22 +259,6 @@ fn height_function(x_km: f64, k: f64) -> f64 {
     result
 }
 
-#[cfg(test)]
-mod smooth_earth_diffraction_tests {
-    use super::smooth_earth_diffraction;
-    use num_complex::Complex;
-
-    #[test]
-    fn test_smooth_earth_diffraction_finite() {
-        let d_hzn = [50_000.0, 50_000.0];
-        let h_e = [30.0, 30.0];
-        let z_g = Complex::new(15.0, 0.1);
-
-        let loss = smooth_earth_diffraction(100_001.0, 900.0, 8.5e6, 0.001, d_hzn, h_e, z_g);
-        assert!(loss.is_finite());
-    }
-}
-
 /// Wrapper for DiffractionLoss — uses Vogler smooth-earth diffraction approximation.
 ///
 /// # Arguments
@@ -363,6 +347,7 @@ pub fn diffraction_loss(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_complex::Complex;
 
     #[test]
     fn test_knife_edge_diffraction_via_fresnel() {
@@ -380,5 +365,15 @@ mod tests {
             large_v2 > 20.0,
             "Large obstruction should cause high diffraction loss"
         );
+    }
+
+    #[test]
+    fn test_smooth_earth_diffraction_finite() {
+        let d_hzn = [50_000.0, 50_000.0];
+        let h_e = [30.0, 30.0];
+        let z_g = Complex::new(15.0, 0.1);
+
+        let loss = smooth_earth_diffraction(100_001.0, 900.0, 8.5e6, 0.001, d_hzn, h_e, z_g);
+        assert!(loss.is_finite());
     }
 }
