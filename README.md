@@ -1,18 +1,18 @@
-# ITM-RS: Irregular Terrain Model for Rust
+# ITM Longley-Rice: Irregular Terrain Model for Rust
 
 [![CI](https://github.com/dgsantana/itm-rs/workflows/CI/badge.svg)](https://github.com/dgsantana/itm-rs/actions/workflows/ci.yml)
 [![NTIA Validation](https://github.com/dgsantana/itm-rs/workflows/NTIA%20Validation/badge.svg)](https://github.com/dgsantana/itm-rs/actions/workflows/validation.yml)
 [![Security Audit](https://github.com/dgsantana/itm-rs/workflows/Security%20Audit/badge.svg)](https://github.com/dgsantana/itm-rs/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
-[![Docs](https://img.shields.io/badge/docs-rustdoc-blue.svg)](https://docs.rs/itm)
-[![Crates.io](https://img.shields.io/crates/v/itm.svg)](https://crates.io/crates/itm)
+[![Docs](https://img.shields.io/badge/docs-rustdoc-blue.svg)](https://docs.rs/itm-longley-rice)
+[![Crates.io](https://img.shields.io/crates/v/itm-longley-rice.svg)](https://crates.io/crates/itm-longley-rice)
 
 A high-performance, scientifically-validated Rust implementation of the **ITS Irregular Terrain Model (ITM)**, also known as the **Longley-Rice** model.
 
 ## Overview
 
-`itm-rs` provides a modern, memory-safe port of the standard atmospheric propagation model used for frequencies between 20 MHz and 20 GHz. This implementation is based directly on the **original NTIA C++ source code (v1.3)**, ensuring functional parity with the established scientific reference while providing the safety and performance benefits of the Rust ecosystem.
+`itm-longley-rice` provides a modern, memory-safe port of the standard atmospheric propagation model used for frequencies between 20 MHz and 20 GHz. This implementation is based directly on the **original NTIA C++ source code (v1.3)**, ensuring functional parity with the established scientific reference while providing the safety and performance benefits of the Rust ecosystem.
 
 This library is designed for integration into large-scale simulations, including **Unreal Engine 5** and other C++ environments, via a robust [C-API](C_API_USAGE.md).
 

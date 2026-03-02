@@ -1,11 +1,11 @@
 [package]
-name = "itm"
+name = "itm-longley-rice"
 version = "1.0.0"
 edition = "2024"
 authors = ["Daniel Santana <dgsantana@gmail.com>"]
 license = "MIT"
 description = "Rust implementation of the ITS Irregular Terrain Model (ITM) for radio propagation prediction"
-documentation = "https://docs.rs/itm"
+documentation = "https://docs.rs/itm-longley-rice"
 homepage = "https://github.com/dgsantana/itm-rs"
 repository = "https://github.com/dgsantana/itm-rs"
 readme = "README.md"
@@ -14,6 +14,7 @@ categories = ["science", "simulation"]
 rust-version = "1.85"
 
 [lib]
+name = "itm"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]

@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software in your research, please cite it as below."
 type: software
-title: "ITM-RS: Irregular Terrain Model for Rust"
+title: "ITM Longley-Rice: Irregular Terrain Model for Rust"
 abstract: >
   A high-performance, scientifically-validated Rust implementation of the 
   ITS Irregular Terrain Model (ITM), also known as the Longley-Rice model.
