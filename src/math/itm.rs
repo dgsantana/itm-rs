@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments)]
 //! High-level ITM orchestration and input validation (Rust-first API).
 //!
 //! This module provides Rust-native implementations of the ITM wrapper
@@ -153,17 +154,17 @@ pub fn validate_inputs(
 ) -> Result<u32, ItmError> {
     let mut warns = warnings::NO_WARNINGS;
 
-    if h_tx_meter < 1.0 || h_tx_meter > 1000.0 {
+    if !(1.0..=1000.0).contains(&h_tx_meter) {
         warns |= warnings::WARN_TX_TERMINAL_HEIGHT;
     }
-    if h_tx_meter < 0.5 || h_tx_meter > 3000.0 {
+    if !(0.5..=3000.0).contains(&h_tx_meter) {
         return Err(ItmError::ErrorTxTerminalHeight);
     }
 
-    if h_rx_meter < 1.0 || h_rx_meter > 1000.0 {
+    if !(1.0..=1000.0).contains(&h_rx_meter) {
         warns |= warnings::WARN_RX_TERMINAL_HEIGHT;
     }
-    if h_rx_meter < 0.5 || h_rx_meter > 3000.0 {
+    if !(0.5..=3000.0).contains(&h_rx_meter) {
         return Err(ItmError::ErrorRxTerminalHeight);
     }
 
@@ -172,14 +173,14 @@ pub fn validate_inputs(
         return Err(ItmError::ErrorInvalidRadioClimate);
     }
 
-    if n_0 < 250.0 || n_0 > 400.0 {
+    if !(250.0..=400.0).contains(&n_0) {
         return Err(ItmError::ErrorRefractivity);
     }
 
-    if f_mhz < 40.0 || f_mhz > 10000.0 {
+    if !(40.0..=10000.0).contains(&f_mhz) {
         warns |= warnings::WARN_FREQUENCY;
     }
-    if f_mhz < 20.0 || f_mhz > 20000.0 {
+    if !(20.0..=20000.0).contains(&f_mhz) {
         return Err(ItmError::ErrorFrequency);
     }
 
@@ -271,10 +272,12 @@ pub fn itm_area_tls(
         return Err(ItmError::ErrorRxSitingCriteria);
     }
 
-    let site_criteria = [tx_site_criteria_idx as i32, rx_site_criteria_idx as i32];
+    let site_criteria = [tx_site_criteria_idx, rx_site_criteria_idx];
     let h_meter = [h_tx_m, h_rx_m];
-    let mut inter = IntermediateValues::default();
-    inter.d_km = d_km;
+    let mut inter = IntermediateValues {
+        d_km,
+        ..Default::default()
+    };
 
     // Point-to-point initialization (ground impedance, gamma_e, N_s)
     let (z_g, gamma_e, n_s) = initialize_point_to_point(
@@ -326,6 +329,13 @@ pub fn itm_area_tls(
     let propmode = lr_result.propmode;
 
     let a_fs_db = free_space_loss(d_m, f_mhz);
+
+    // Extract mdvar flags for disabling variability components
+    // mdvar >= 20: disable situation variability
+    // mdvar >= 10 (after subtracting 20): disable location variability
+    let disable_situation = mdvar >= 20;
+    let disable_location = (mdvar % 20) >= 10;
+
     let result_variability = variability_loss(
         time_pct,
         location_pct,
@@ -337,8 +347,8 @@ pub fn itm_area_tls(
         a_ref_db,
         climate_from_idx(climate_idx)?,
         mdvar_to_mode(mdvar)?,
-        false,
-        false,
+        disable_location,
+        disable_situation,
         &mut warnings_u32,
     );
 
@@ -354,12 +364,7 @@ pub fn itm_area_tls(
     inter.theta_hzn = theta_hzn;
     inter.mode = propmode;
 
-    let final_warnings = warnings_u32;
-    if final_warnings != warnings::NO_WARNINGS {
-        Ok((a_db, final_warnings, inter))
-    } else {
-        Ok((a_db, final_warnings, inter))
-    }
+    Ok((a_db, warnings_u32, inter))
 }
 
 /// AREA CR wrapper (confidence/reliability). Maps CR to TLS internals.
@@ -481,6 +486,13 @@ pub fn itm_p2p_tls(
             warnings |= lr_result.warnings;
             let propmode = lr_result.propmode;
             let a_fs_db = free_space_loss(d_m, f_mhz);
+
+            // Extract mdvar flags for disabling variability components
+            // mdvar >= 20: disable situation variability
+            // mdvar >= 10 (after subtracting 20): disable location variability
+            let disable_situation = mdvar >= 20;
+            let disable_location = (mdvar % 20) >= 10;
+
             let variability = variability_loss(
                 time_pct,
                 location_pct,
@@ -492,8 +504,8 @@ pub fn itm_p2p_tls(
                 a_ref_db,
                 climate_from_idx(climate_idx)?,
                 mdvar_to_mode(mdvar)?,
-                false,
-                false,
+                disable_location,
+                disable_situation,
                 &mut warnings,
             );
             let a_db = a_fs_db + variability;
