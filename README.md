@@ -48,6 +48,8 @@ This project is a pragmatic, high-fidelity port of the **NTIA/ITS C++ implementa
 Refer to the following documentation for integration details:
 - [C-API Usage Guide](C_API_USAGE.md): Detailed instructions for Unreal Engine and C/C++ integration.
 
+**FFI feature note:** The C-API is enabled by default. Rust-only consumers can disable it with `--no-default-features` or by setting `default-features = false` in their dependency entry.
+
 ---
 *For technical inquiries regarding the underlying ITM model, refer to the [official NTIA/ITS documentation](https://github.com/NTIA/itm).*
 

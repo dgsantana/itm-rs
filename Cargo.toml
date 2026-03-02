@@ -21,8 +21,9 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 num-complex = "0.4"
 rayon = "1.11"
 
-[dev-dependencies]
-# Add dev dependencies for testing here if needed
+[features]
+default = ["ffi"]
+ffi = []
 
 [profile.release]
 opt-level = "z"

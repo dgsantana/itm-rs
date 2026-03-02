@@ -34,5 +34,6 @@
 //!   Loss Over Irregular Terrain: A Computer Method - 1968." NTIA Technical Report
 //!   ERL 79-ITS 67.
 
+#[cfg(feature = "ffi")]
 pub mod ffi;
 pub mod math;
