@@ -1,8 +1,8 @@
 //! NTIA ITM Reference Implementation Validation Tests
 //!
-//! These tests validate the Rust implementation against the original
-//! NTIA/ITS C++ reference implementation outputs from:
-//! https://github.com/NTIA/itm/tree/master/cmd_examples
+//! These tests run NTIA's `cmd_examples` cases (https://github.com/NTIA/itm/tree/master/cmd_examples). Area mode is
+//! checked against the outputs NTIA printed; point-to-point against NTIA's current C++ (`reference/ntia-itm`), since
+//! its printed outputs come from an older DLL.
 //!
 //! Test data files:
 //! - o_areatls.txt: Area TLS mode single point test
@@ -262,146 +262,58 @@ fn parse_terrain_profile(csv: &str) -> Vec<f64> {
         .collect()
 }
 
-/// Test Point-to-Point CR mode against NTIA reference
-/// Reference: o_p2pcr.txt
-///
-/// Inputs:
-/// - h_tx = 15m, h_rx = 3m
-/// - terrain profile from pfl.txt
-/// - climate = 5, f = 3500 MHz
-/// - confidence = 50%, reliability = 50%
-///
-/// Expected: 114.5 dB
-///
-/// NOTE: Large discrepancy consistent with NTIA issue #25.
-#[test]
-#[ignore = "cmd_examples o_p2pcr.txt's intermediate values predate NTIA's current C++ (the loss, 114.536 dB, still agrees); ntia_reference.rs compares with the current C++"]
-fn test_p2p_cr_ntia_reference() {
-    let pfl_csv = include_str!("fixtures/pfl.txt");
-    let pfl = parse_terrain_profile(pfl_csv);
-
-    let result = itm_p2p_cr(
-        15.0,   // h_tx_m
-        3.0,    // h_rx_m
-        &pfl,   // terrain profile
-        5,      // climate (Continental Temperate)
-        301.0,  // n_0
-        3500.0, // f_mhz
-        1,      // pol (Vertical)
-        15.0,   // epsilon
-        0.005,  // sigma
-        1,      // mdvar (Accidental Mode)
-        50.0,   // confidence_pct
-        50.0,   // reliability_pct
-    );
-
-    assert!(result.is_ok(), "P2P CR should succeed");
-    let (a_db, warnings, inter) = result.unwrap();
-
-    // Validate basic transmission loss
-    assert_loss_near(a_db, 114.5, "P2P CR basic transmission loss");
-
-    // Validate intermediate values
-    assert_loss_near(inter.a_fs_db, 114.5, "Free space loss");
-    assert!((inter.d_km - 3.635).abs() < 0.01, "Distance");
-    assert!(
-        (inter.theta_hzn[0] + 0.001949).abs() < 0.0001,
-        "Tx horizon angle"
-    ); // -1.949 mrad
-    assert!(
-        (inter.theta_hzn[1] + 0.000856).abs() < 0.0001,
-        "Rx horizon angle"
-    ); // -0.856 mrad
-    assert!(
-        (inter.d_hzn_meter[0] - 14868.0).abs() < 10.0,
-        "Tx horizon distance"
-    );
-    assert!(
-        (inter.d_hzn_meter[1] - 6494.0).abs() < 10.0,
-        "Rx horizon distance"
-    );
-    assert!(
-        (inter.h_e_meter[0] - 15.0).abs() < 0.1,
-        "Tx effective height"
-    );
-    assert!(
-        (inter.h_e_meter[1] - 3.0).abs() < 0.1,
-        "Rx effective height"
-    );
-    assert!((inter.n_s - 251.5).abs() < 0.5, "Surface refractivity");
-    assert!(
-        (inter.delta_h_meter - 3.2).abs() < 0.2,
-        "Terrain irregularity"
-    );
-    assert_loss_near(inter.a_ref_db, 0.0, "Reference attenuation");
-    assert_eq!(inter.mode, 1, "Mode should be Line of Sight");
-
-    // No warnings expected
-    assert_eq!(warnings, 0, "No warnings expected");
+/// The port and NTIA's current C++ (`reference/ntia-itm`) on the same point-to-point CR case agree: the loss within
+/// 0.01 dB, every intermediate value, and the warnings. NTIA's CR mode is its TLS mode with time = reliability,
+/// location = 50 % and situation = confidence.
+fn assert_p2p_cr_matches_ntia(pfl: &[f64], reliability: f64, confidence: f64) -> f64 {
+    let label = format!("P2P CR rel={reliability}%, conf={confidence}%");
+    let (a_db, warnings, inter) = itm_p2p_cr(15.0, 3.0, pfl, 5, 301.0, 3500.0, 1, 15.0, 0.005, 1, confidence, reliability)
+        .unwrap_or_else(|error| panic!("{label}: {error:?}"));
+    let ntia = ntia_itm_reference::p2p_tls(15.0, 3.0, pfl, 5, 301.0, 3500.0, 1, 15.0, 0.005, 1, reliability, 50.0, confidence);
+    assert_eq!(ntia.code, 0, "{label}: NTIA's C++ succeeds");
+    let near = |port: f64, reference: f64, what: &str, tolerance: f64| {
+        assert!((port - reference).abs() <= tolerance, "{label}, {what}: port {port}, NTIA {reference}");
+    };
+    near(a_db, ntia.loss_db, "basic transmission loss", 0.01);
+    let reference = ntia.intermediate;
+    near(inter.a_fs_db, reference.a_fs_db, "free-space loss", 1e-6);
+    near(inter.a_ref_db, reference.a_ref_db, "reference attenuation", 1e-6);
+    near(inter.d_km, reference.d_km, "distance", 1e-9);
+    near(inter.n_s, reference.n_s, "surface refractivity", 1e-9);
+    near(inter.delta_h_meter, reference.delta_h_meter, "terrain irregularity", 1e-6);
+    for i in 0..2 {
+        near(inter.theta_hzn[i], reference.theta_hzn[i], "horizon angle", 1e-12);
+        near(inter.d_hzn_meter[i], reference.d_hzn_meter[i], "horizon distance", 1e-6);
+        near(inter.h_e_meter[i], reference.h_e_meter[i], "effective height", 1e-6);
+    }
+    assert_eq!(inter.mode, reference.mode, "{label}: mode of propagation");
+    assert_eq!(i64::from(warnings), ntia.warnings, "{label}: warnings");
+    a_db
 }
 
-/// Test Point-to-Point CR mode with multiple confidence/reliability values
-/// Reference: o_p2pcr_tbl.txt
+/// Point-to-point CR mode on NTIA's `cmd_examples` case (`i_p2pcr.txt`, `pfl.txt`: h_tx 15 m, h_rx 3 m, climate 5,
+/// 3,500 MHz, vertical, accidental mode, 50 % confidence and reliability), against NTIA's current C++.
 ///
-/// Expected losses (reliability x confidence):
-/// - 10% x 10%: 110.9 dB
-/// - 10% x 60%: 117.2 dB
-/// - 10% x 90%: 129.1 dB
-/// - 65% x 10%: 110.9 dB
-/// - 65% x 60%: 117.4 dB
-/// - 65% x 90%: 129.2 dB
-/// - 90% x 10%: 110.9 dB
-/// - 90% x 60%: 117.5 dB
-/// - 90% x 90%: 129.3 dB
-///
-/// NOTE: Reference test files from older ITM version (see NTIA issue #25).
+/// `o_p2pcr.txt` was printed by NTIA's v1.4 DLL (January 2024) and rounds to 0.1 dB; the current source gives the
+/// same loss (114.5 dB printed, 114.536 dB) but slightly different intermediate values (the receiver's horizon at
+/// -0.870 mrad, not -0.856; terrain irregularity 3.65 m, not 3.2), so the current C++ is the reference here.
 #[test]
-#[ignore = "cmd_examples o_p2pcr_tbl.txt predates NTIA's current C++, which gives up to 0.22 dB more (129.418 for 129.2); ntia_reference.rs compares with the current C++"]
+fn test_p2p_cr_ntia_reference() {
+    let pfl = parse_terrain_profile(include_str!("fixtures/pfl.txt"));
+    let a_db = assert_p2p_cr_matches_ntia(&pfl, 50.0, 50.0);
+    assert_loss_near(a_db, 114.5, "P2P CR basic transmission loss, as o_p2pcr.txt prints it");
+}
+
+/// Point-to-point CR mode over NTIA's `cmd_examples` table (`i_p2pcr_tbl.txt`): reliability and confidence of 10, 65
+/// and 90 %, each against NTIA's current C++. `o_p2pcr_tbl.txt`, printed by the v1.4 DLL, is up to 0.22 dB below what
+/// the current source gives (129.2 dB printed for 129.418 dB at 65 % and 90 %).
+#[test]
 fn test_p2p_cr_ntia_reference_table() {
-    let pfl_csv = include_str!("fixtures/pfl.txt");
-    let pfl = parse_terrain_profile(pfl_csv);
-
-    let test_cases = [
-        // (reliability, confidence, expected_loss)
-        (10.0, 10.0, 110.9),
-        (10.0, 60.0, 117.2),
-        (10.0, 90.0, 129.1),
-        (65.0, 10.0, 110.9),
-        (65.0, 60.0, 117.4),
-        (65.0, 90.0, 129.2),
-        (90.0, 10.0, 110.9),
-        (90.0, 60.0, 117.5),
-        (90.0, 90.0, 129.3),
-    ];
-
-    for (reliability, confidence, expected_loss) in test_cases {
-        let result = itm_p2p_cr(
-            15.0,        // h_tx_m
-            3.0,         // h_rx_m
-            &pfl,        // terrain profile
-            5,           // climate (Continental Temperate)
-            301.0,       // n_0
-            3500.0,      // f_mhz
-            1,           // pol (Vertical)
-            15.0,        // epsilon
-            0.005,       // sigma
-            1,           // mdvar (Accidental Mode)
-            confidence,  // confidence_pct
-            reliability, // reliability_pct
-        );
-
-        assert!(
-            result.is_ok(),
-            "P2P CR should succeed at rel={}%, conf={}%",
-            reliability,
-            confidence
-        );
-        let (a_db, _warnings, _inter) = result.unwrap();
-        assert_loss_near(
-            a_db,
-            expected_loss,
-            &format!("P2P CR rel={}%, conf={}%", reliability, confidence),
-        );
+    let pfl = parse_terrain_profile(include_str!("fixtures/pfl.txt"));
+    for reliability in [10.0, 65.0, 90.0] {
+        for confidence in [10.0, 60.0, 90.0] {
+            assert_p2p_cr_matches_ntia(&pfl, reliability, confidence);
+        }
     }
 }
 

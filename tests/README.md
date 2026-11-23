@@ -23,13 +23,12 @@ fractional centre truncated in the least-squares fit, the area mode run as point
 crossover distance in troposcatter, the variability modes numbered in reverse, and warning bits that differed from
 NTIA's).
 
-## `ntia_validation.rs`: against NTIA's command-line examples
+## `ntia_validation.rs`: NTIA's command-line examples
 
-The older examples in NTIA's `cmd_examples` (`fixtures/pfl.txt` and the outputs quoted in each test), at ±0.2 dB.
-Area mode, in both TLS and CR form, passes. Two point-to-point tests stay ignored, because those files predate NTIA's
-current C++: `o_p2pcr_tbl.txt` is up to 0.22 dB below what the current C++ gives (129.2 against 129.418 dB), and
-`o_p2pcr.txt`'s intermediate values differ from it, though its loss (114.536 dB) agrees. `ntia_reference.rs` is the
-authority for both.
+The cases in NTIA's `cmd_examples` (`fixtures/pfl.txt` for the terrain). Area mode, TLS and CR, is checked against the
+outputs NTIA printed, at ±0.2 dB. Point-to-point CR is checked against NTIA's current C++, loss within 0.01 dB and every
+intermediate value: `o_p2pcr.txt` and `o_p2pcr_tbl.txt` were printed by NTIA's v1.4 DLL (January 2024), whose
+intermediate values and some losses (up to 0.22 dB: 129.2 printed for 129.418 dB) differ from the current source.
 
 ## Running
 
