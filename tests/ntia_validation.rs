@@ -258,24 +258,79 @@ fn parse_terrain_profile(csv: &str) -> Vec<f64> {
 /// location = 50 % and situation = confidence.
 fn assert_p2p_cr_matches_ntia(pfl: &[f64], reliability: f64, confidence: f64) -> f64 {
     let label = format!("P2P CR rel={reliability}%, conf={confidence}%");
-    let (a_db, warnings, inter) = itm_p2p_cr(15.0, 3.0, pfl, 5, 301.0, 3500.0, 1, 15.0, 0.005, 1, confidence, reliability)
-        .unwrap_or_else(|error| panic!("{label}: {error:?}"));
-    let ntia = ntia_itm_reference::p2p_tls(15.0, 3.0, pfl, 5, 301.0, 3500.0, 1, 15.0, 0.005, 1, reliability, 50.0, confidence);
+    let (a_db, warnings, inter) = itm_p2p_cr(
+        15.0,
+        3.0,
+        pfl,
+        5,
+        301.0,
+        3500.0,
+        1,
+        15.0,
+        0.005,
+        1,
+        confidence,
+        reliability,
+    )
+    .unwrap_or_else(|error| panic!("{label}: {error:?}"));
+    let ntia = ntia_itm_reference::p2p_tls(
+        15.0,
+        3.0,
+        pfl,
+        5,
+        301.0,
+        3500.0,
+        1,
+        15.0,
+        0.005,
+        1,
+        reliability,
+        50.0,
+        confidence,
+    );
     assert_eq!(ntia.code, 0, "{label}: NTIA's C++ succeeds");
     let near = |port: f64, reference: f64, what: &str, tolerance: f64| {
-        assert!((port - reference).abs() <= tolerance, "{label}, {what}: port {port}, NTIA {reference}");
+        assert!(
+            (port - reference).abs() <= tolerance,
+            "{label}, {what}: port {port}, NTIA {reference}"
+        );
     };
     near(a_db, ntia.loss_db, "basic transmission loss", 0.01);
     let reference = ntia.intermediate;
     near(inter.a_fs_db, reference.a_fs_db, "free-space loss", 1e-6);
-    near(inter.a_ref_db, reference.a_ref_db, "reference attenuation", 1e-6);
+    near(
+        inter.a_ref_db,
+        reference.a_ref_db,
+        "reference attenuation",
+        1e-6,
+    );
     near(inter.d_km, reference.d_km, "distance", 1e-9);
     near(inter.n_s, reference.n_s, "surface refractivity", 1e-9);
-    near(inter.delta_h_meter, reference.delta_h_meter, "terrain irregularity", 1e-6);
+    near(
+        inter.delta_h_meter,
+        reference.delta_h_meter,
+        "terrain irregularity",
+        1e-6,
+    );
     for i in 0..2 {
-        near(inter.theta_hzn[i], reference.theta_hzn[i], "horizon angle", 1e-12);
-        near(inter.d_hzn_meter[i], reference.d_hzn_meter[i], "horizon distance", 1e-6);
-        near(inter.h_e_meter[i], reference.h_e_meter[i], "effective height", 1e-6);
+        near(
+            inter.theta_hzn[i],
+            reference.theta_hzn[i],
+            "horizon angle",
+            1e-12,
+        );
+        near(
+            inter.d_hzn_meter[i],
+            reference.d_hzn_meter[i],
+            "horizon distance",
+            1e-6,
+        );
+        near(
+            inter.h_e_meter[i],
+            reference.h_e_meter[i],
+            "effective height",
+            1e-6,
+        );
     }
     assert_eq!(inter.mode, reference.mode, "{label}: mode of propagation");
     assert_eq!(i64::from(warnings), ntia.warnings, "{label}: warnings");
@@ -292,7 +347,11 @@ fn assert_p2p_cr_matches_ntia(pfl: &[f64], reliability: f64, confidence: f64) ->
 fn test_p2p_cr_ntia_reference() {
     let pfl = parse_terrain_profile(include_str!("fixtures/pfl.txt"));
     let a_db = assert_p2p_cr_matches_ntia(&pfl, 50.0, 50.0);
-    assert_loss_near(a_db, 114.5, "P2P CR basic transmission loss, as o_p2pcr.txt prints it");
+    assert_loss_near(
+        a_db,
+        114.5,
+        "P2P CR basic transmission loss, as o_p2pcr.txt prints it",
+    );
 }
 
 /// Point-to-point CR mode over NTIA's `cmd_examples` table (`i_p2pcr_tbl.txt`): reliability and confidence of 10, 65

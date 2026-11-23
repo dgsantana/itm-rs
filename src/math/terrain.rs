@@ -480,7 +480,8 @@ pub fn quick_pfl(pfl: &[f64], gamma_e: f64, h: [f64; 2]) -> QuickPflResult {
         let (fit_tx, fit_rx) = linear_least_square_fit(pfl, d_start, d_end);
         h_e[0] = h[0] + fdim(pfl[2], fit_tx);
         h_e[1] = h[1] + fdim(pfl[np + 2], fit_rx);
-        let horizon = |h_e: f64| (2.0 * h_e * a_e).sqrt() * (-0.07 * (delta_h / h_e.max(5.0)).sqrt()).exp();
+        let horizon =
+            |h_e: f64| (2.0 * h_e * a_e).sqrt() * (-0.07 * (delta_h / h_e.max(5.0)).sqrt()).exp();
         for i in 0..2 {
             d_hzn[i] = horizon(h_e[i]);
         }

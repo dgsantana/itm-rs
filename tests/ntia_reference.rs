@@ -14,14 +14,23 @@ fn rows(csv: &str) -> Vec<Vec<f64>> {
     csv.lines()
         .skip(1)
         .filter(|line| !line.trim().is_empty())
-        .map(|line| line.split(',').map(|value| value.trim().parse().expect("a number")).collect())
+        .map(|line| {
+            line.split(',')
+                .map(|value| value.trim().parse().expect("a number"))
+                .collect()
+        })
         .collect()
 }
 
 fn profiles(csv: &str) -> Vec<Vec<f64>> {
     csv.lines()
         .filter(|line| !line.trim().is_empty())
-        .map(|line| line.split(',').filter(|value| !value.trim().is_empty()).map(|value| value.trim().parse().expect("a number")).collect())
+        .map(|line| {
+            line.split(',')
+                .filter(|value| !value.trim().is_empty())
+                .map(|value| value.trim().parse().expect("a number"))
+                .collect()
+        })
         .collect()
 }
 
@@ -49,7 +58,11 @@ impl Cases {
 
 /// Whether the port's result agrees with NTIA's for one case: both succeed with losses within `TOLERANCE_DB`, the same
 /// mode of propagation and the same warnings, or both refuse with the same error code. The reason when they do not.
-fn compare(label: &str, port: Result<(f64, u32, itm::math::itm::IntermediateValues), itm::math::itm::ItmError>, reference: Reference) -> Option<String> {
+fn compare(
+    label: &str,
+    port: Result<(f64, u32, itm::math::itm::IntermediateValues), itm::math::itm::ItmError>,
+    reference: Reference,
+) -> Option<String> {
     let reference_ok = reference.code == 0 || reference.code == 1;
     match port {
         Ok((loss, warnings, inter)) if reference_ok => {
@@ -63,16 +76,31 @@ fn compare(label: &str, port: Result<(f64, u32, itm::math::itm::IntermediateValu
                 )
             })
         }
-        Err(error) if !reference_ok => {
-            (error.code() != reference.code).then(|| format!("{label}: port refused with {}, NTIA with {}", error.code(), reference.code))
-        }
-        Ok((loss, _, _)) => Some(format!("{label}: port gave {loss:.3} dB, NTIA refused it (code {})", reference.code)),
-        Err(error) => Some(format!("{label}: port refused it ({error:?}), NTIA gave {:.3} dB", reference.loss_db)),
+        Err(error) if !reference_ok => (error.code() != reference.code).then(|| {
+            format!(
+                "{label}: port refused with {}, NTIA with {}",
+                error.code(),
+                reference.code
+            )
+        }),
+        Ok((loss, _, _)) => Some(format!(
+            "{label}: port gave {loss:.3} dB, NTIA refused it (code {})",
+            reference.code
+        )),
+        Err(error) => Some(format!(
+            "{label}: port refused it ({error:?}), NTIA gave {:.3} dB",
+            reference.loss_db
+        )),
     }
 }
 
 fn assert_agrees(failures: Vec<String>, what: &str) {
-    assert!(failures.is_empty(), "{what}: {} case(s) disagree with NTIA:\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{what}: {} case(s) disagree with NTIA:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
 
 #[test]
@@ -83,9 +111,42 @@ fn published_point_to_point_cases_match_ntia() {
     let mut failures = Vec::new();
     for (index, (c, pfl)) in cases.iter().zip(&pfls).enumerate() {
         // h_tx, h_rx, epsilon, sigma, N_0, f, pol, climate, time, location, situation, mdvar, A
-        let port = itm_p2p_tls(c[0], c[1], pfl, c[7] as i32, c[4], c[5], c[6] as i32, c[2], c[3], c[11] as i32, c[8], c[9], c[10]);
-        let reference = p2p_tls(c[0], c[1], pfl, c[7] as i32, c[4], c[5], c[6] as i32, c[2], c[3], c[11] as i32, c[8], c[9], c[10]);
-        assert!((reference.loss_db - c[12]).abs() <= 0.05, "case {index}: NTIA's C++ gives {} for a published {}", reference.loss_db, c[12]);
+        let port = itm_p2p_tls(
+            c[0],
+            c[1],
+            pfl,
+            c[7] as i32,
+            c[4],
+            c[5],
+            c[6] as i32,
+            c[2],
+            c[3],
+            c[11] as i32,
+            c[8],
+            c[9],
+            c[10],
+        );
+        let reference = p2p_tls(
+            c[0],
+            c[1],
+            pfl,
+            c[7] as i32,
+            c[4],
+            c[5],
+            c[6] as i32,
+            c[2],
+            c[3],
+            c[11] as i32,
+            c[8],
+            c[9],
+            c[10],
+        );
+        assert!(
+            (reference.loss_db - c[12]).abs() <= 0.05,
+            "case {index}: NTIA's C++ gives {} for a published {}",
+            reference.loss_db,
+            c[12]
+        );
         failures.extend(compare(&format!("published p2p {index}"), port, reference));
     }
     assert_agrees(failures, "published point-to-point");
@@ -94,16 +155,54 @@ fn published_point_to_point_cases_match_ntia() {
 #[test]
 fn published_area_cases_match_ntia() {
     let mut failures = Vec::new();
-    for (index, c) in rows(include_str!("fixtures/ntia/area.csv")).iter().enumerate() {
+    for (index, c) in rows(include_str!("fixtures/ntia/area.csv"))
+        .iter()
+        .enumerate()
+    {
         // h_tx, h_rx, delta_h, mdvar, d, tx_siting, rx_siting, epsilon, sigma, N_0, f, pol, climate, time, location,
         // situation, A
         let port = itm_area_tls(
-            c[0], c[1], c[5] as i32, c[6] as i32, c[4], c[2], c[12] as i32, c[9], c[10], c[11] as i32, c[7], c[8], c[3] as i32, c[13], c[14], c[15],
+            c[0],
+            c[1],
+            c[5] as i32,
+            c[6] as i32,
+            c[4],
+            c[2],
+            c[12] as i32,
+            c[9],
+            c[10],
+            c[11] as i32,
+            c[7],
+            c[8],
+            c[3] as i32,
+            c[13],
+            c[14],
+            c[15],
         );
         let reference = area_tls(
-            c[0], c[1], c[5] as i32, c[6] as i32, c[4], c[2], c[12] as i32, c[9], c[10], c[11] as i32, c[7], c[8], c[3] as i32, c[13], c[14], c[15],
+            c[0],
+            c[1],
+            c[5] as i32,
+            c[6] as i32,
+            c[4],
+            c[2],
+            c[12] as i32,
+            c[9],
+            c[10],
+            c[11] as i32,
+            c[7],
+            c[8],
+            c[3] as i32,
+            c[13],
+            c[14],
+            c[15],
         );
-        assert!((reference.loss_db - c[16]).abs() <= 0.05, "case {index}: NTIA's C++ gives {} for a published {}", reference.loss_db, c[16]);
+        assert!(
+            (reference.loss_db - c[16]).abs() <= 0.05,
+            "case {index}: NTIA's C++ gives {} for a published {}",
+            reference.loss_db,
+            c[16]
+        );
         failures.extend(compare(&format!("published area {index}"), port, reference));
     }
     assert_agrees(failures, "published area");
@@ -115,11 +214,26 @@ fn generated_profile(cases: &mut Cases) -> Vec<f64> {
     let intervals = 2 + cases.pick(999) as usize;
     let spacing = cases.log_range(1.0, 1000.0);
     let base = cases.range(0.0, 1500.0);
-    let waves: Vec<(f64, f64, f64)> = (0..3).map(|_| (cases.range(0.0, 300.0), cases.range(0.2, 6.0), cases.range(0.0, 6.3))).collect();
+    let waves: Vec<(f64, f64, f64)> = (0..3)
+        .map(|_| {
+            (
+                cases.range(0.0, 300.0),
+                cases.range(0.2, 6.0),
+                cases.range(0.0, 6.3),
+            )
+        })
+        .collect();
     let mut pfl = vec![intervals as f64, spacing];
     for i in 0..=intervals {
         let x = i as f64 / intervals as f64;
-        pfl.push(base + waves.iter().map(|(height, cycles, phase)| height * (x * cycles * std::f64::consts::TAU + phase).sin()).sum::<f64>());
+        pfl.push(
+            base + waves
+                .iter()
+                .map(|(height, cycles, phase)| {
+                    height * (x * cycles * std::f64::consts::TAU + phase).sin()
+                })
+                .sum::<f64>(),
+        );
     }
     pfl
 }
@@ -137,9 +251,19 @@ fn generated_point_to_point_cases_match_ntia() {
         let (epsilon, sigma) = (cases.range(4.0, 80.0), cases.log_range(0.001, 5.0));
         let n_0 = cases.range(250.0, 400.0);
         let mdvar = cases.pick(4) + [0, 10, 20, 30][cases.pick(4) as usize];
-        let (time, location, situation) = (cases.range(1.0, 99.0), cases.range(1.0, 99.0), cases.range(1.0, 99.0));
-        let port = itm_p2p_tls(h_tx, h_rx, &pfl, climate, n_0, f_mhz, pol, epsilon, sigma, mdvar, time, location, situation);
-        let reference = p2p_tls(h_tx, h_rx, &pfl, climate, n_0, f_mhz, pol, epsilon, sigma, mdvar, time, location, situation);
+        let (time, location, situation) = (
+            cases.range(1.0, 99.0),
+            cases.range(1.0, 99.0),
+            cases.range(1.0, 99.0),
+        );
+        let port = itm_p2p_tls(
+            h_tx, h_rx, &pfl, climate, n_0, f_mhz, pol, epsilon, sigma, mdvar, time, location,
+            situation,
+        );
+        let reference = p2p_tls(
+            h_tx, h_rx, &pfl, climate, n_0, f_mhz, pol, epsilon, sigma, mdvar, time, location,
+            situation,
+        );
         failures.extend(compare(&format!("generated p2p {index}"), port, reference));
     }
     assert_agrees(failures, "generated point-to-point");
@@ -160,12 +284,18 @@ fn generated_area_cases_match_ntia() {
         let pol = cases.pick(2);
         let (epsilon, sigma) = (cases.range(4.0, 80.0), cases.log_range(0.001, 5.0));
         let mdvar = cases.pick(4) + [0, 10, 20, 30][cases.pick(4) as usize];
-        let (time, location, situation) = (cases.range(1.0, 99.0), cases.range(1.0, 99.0), cases.range(1.0, 99.0));
+        let (time, location, situation) = (
+            cases.range(1.0, 99.0),
+            cases.range(1.0, 99.0),
+            cases.range(1.0, 99.0),
+        );
         let port = itm_area_tls(
-            h_tx, h_rx, tx_site, rx_site, d_km, delta_h, climate, n_0, f_mhz, pol, epsilon, sigma, mdvar, time, location, situation,
+            h_tx, h_rx, tx_site, rx_site, d_km, delta_h, climate, n_0, f_mhz, pol, epsilon, sigma,
+            mdvar, time, location, situation,
         );
         let reference = area_tls(
-            h_tx, h_rx, tx_site, rx_site, d_km, delta_h, climate, n_0, f_mhz, pol, epsilon, sigma, mdvar, time, location, situation,
+            h_tx, h_rx, tx_site, rx_site, d_km, delta_h, climate, n_0, f_mhz, pol, epsilon, sigma,
+            mdvar, time, location, situation,
         );
         failures.extend(compare(&format!("generated area {index}"), port, reference));
     }

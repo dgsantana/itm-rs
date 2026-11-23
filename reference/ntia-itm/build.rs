@@ -15,9 +15,14 @@ fn main() {
         println!("cargo:rerun-if-changed={folder}");
         for entry in fs::read_dir(folder).unwrap_or_else(|error| panic!("{folder}/: {error}")) {
             let path = entry.expect("an entry").path();
-            let text = fs::read_to_string(&path).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+            let text = fs::read_to_string(&path)
+                .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
             let portable = text.replace("#include \"..\\include\\", "#include \"");
-            fs::write(sources.join(path.file_name().expect("a file name")), portable).expect("a copy in OUT_DIR");
+            fs::write(
+                sources.join(path.file_name().expect("a file name")),
+                portable,
+            )
+            .expect("a copy in OUT_DIR");
         }
     }
 

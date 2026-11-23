@@ -114,11 +114,30 @@ pub fn p2p_tls(
     // SAFETY: the assertion above makes `pfl` hold every value NTIA reads; the out pointers are valid locals.
     let code = unsafe {
         itm_p2p_tls_ex(
-            h_tx, h_rx, pfl.as_ptr(), climate, n_0, f_mhz, pol, epsilon, sigma, mdvar, time, location, situation, &mut loss_db,
-            &mut warnings, &mut intermediate,
+            h_tx,
+            h_rx,
+            pfl.as_ptr(),
+            climate,
+            n_0,
+            f_mhz,
+            pol,
+            epsilon,
+            sigma,
+            mdvar,
+            time,
+            location,
+            situation,
+            &mut loss_db,
+            &mut warnings,
+            &mut intermediate,
         )
     };
-    Reference { code, loss_db, warnings: warnings as i64, intermediate }
+    Reference {
+        code,
+        loss_db,
+        warnings: warnings as i64,
+        intermediate,
+    }
 }
 
 /// NTIA's area time, location and situation mode.
@@ -145,9 +164,31 @@ pub fn area_tls(
     // SAFETY: plain values in, valid locals out.
     let code = unsafe {
         itm_area_tls_ex(
-            h_tx, h_rx, tx_site, rx_site, d_km, delta_h, climate, n_0, f_mhz, pol, epsilon, sigma, mdvar, time, location, situation,
-            &mut loss_db, &mut warnings, &mut intermediate,
+            h_tx,
+            h_rx,
+            tx_site,
+            rx_site,
+            d_km,
+            delta_h,
+            climate,
+            n_0,
+            f_mhz,
+            pol,
+            epsilon,
+            sigma,
+            mdvar,
+            time,
+            location,
+            situation,
+            &mut loss_db,
+            &mut warnings,
+            &mut intermediate,
         )
     };
-    Reference { code, loss_db, warnings: warnings as i64, intermediate }
+    Reference {
+        code,
+        loss_db,
+        warnings: warnings as i64,
+        intermediate,
+    }
 }

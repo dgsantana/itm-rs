@@ -164,7 +164,7 @@ pub(crate) fn longley_rice(
         let a_sml_db = d_sml * m_d + a_d0;
 
         let mut d_0 = 0.04 * f * h_e[0] * h_e[1];
-        
+
         let d_1: f64 = if a_d0 >= 0.0 {
             d_0 = d_0.min(0.5 * d_ml);
             d_0 + 0.25 * (d_ml - d_0)
@@ -232,7 +232,10 @@ pub(crate) fn longley_rice(
         let (m_s, a_s0_db, d_x_m) = if a5_db < 1000.0 {
             let m_s = (a6_db - a5_db) / 200e3;
             let d_x = c_max(
-                c_max(d_sml, d_ml + 1.088 * (a_e.powi(2) / f).powf(1.0 / 3.0) * f.ln()),
+                c_max(
+                    d_sml,
+                    d_ml + 1.088 * (a_e.powi(2) / f).powf(1.0 / 3.0) * f.ln(),
+                ),
                 (a5_db - a_d0 - m_s * d_5) / (m_d - m_s),
             );
             let a_s0 = (m_d - m_s) * d_x + a_d0;

@@ -264,19 +264,19 @@ pub fn itm_area_tls(
     // validate
     {
         let w = validate_inputs(
-        h_tx_m,
-        h_rx_m,
-        climate_idx,
-        time_pct,
-        location_pct,
-        situation_pct,
-        n_0,
-        f_mhz,
-        pol_idx,
-        epsilon,
-        sigma,
-        mdvar,
-    )?;
+            h_tx_m,
+            h_rx_m,
+            climate_idx,
+            time_pct,
+            location_pct,
+            situation_pct,
+            n_0,
+            f_mhz,
+            pol_idx,
+            epsilon,
+            sigma,
+            mdvar,
+        )?;
         warnings_mask |= w
     }
 
@@ -476,7 +476,8 @@ pub fn itm_p2p_tls(
             // and with it the effective earth's curvature, as NTIA's ITM_P2P_TLS_Ex does.
             let np = pfl[0] as usize;
             let p10 = (0.1 * np as f64) as usize;
-            let h_sys_m = pfl[p10 + 2..=np - p10 + 2].iter().sum::<f64>() / (np - 2 * p10 + 1) as f64;
+            let h_sys_m =
+                pfl[p10 + 2..=np - p10 + 2].iter().sum::<f64>() / (np - 2 * p10 + 1) as f64;
             let (z_g, gamma_e, n_s) = initialize_point_to_point(
                 f_mhz,
                 h_sys_m,
