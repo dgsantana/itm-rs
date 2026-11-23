@@ -121,53 +121,41 @@ pub fn sigma_h_function(delta_h: f64) -> f64 {
 /// - Standard least-squares regression method with centered coordinates for numerical stability
 /// - ITM Technical Note 101 (TN101): Terrain profile analysis methods
 pub(crate) fn linear_least_square_fit(pfl: &[f64], d_start: f64, d_end: f64) -> (f64, f64) {
-    let num_points = pfl[0] as usize;
-    let distance_step = pfl[1];
+    // A line-for-line port of NTIA's LinearLeastSquaresFit: the indices round as `int(fdim(...))` does there, and the
+    // centre offset stays fractional.
+    let np = pfl[0] as i64;
+    let xi = pfl[1];
+    let fdim = |a: f64, b: f64| (a - b).max(0.0);
 
-    // Calculate starting and ending indices within the profile data
-    let mut index_start = (d_start / distance_step).max(0.0) as usize;
-    let mut index_end = (d_end / distance_step).min(num_points as f64) as usize;
-
-    // Ensure valid range; if empty or invalid, adjust boundaries
-    if index_end <= index_start {
-        index_start = index_start.max(1) - 1;
-        index_end = (index_end + 1).min(num_points);
+    let mut i_start = fdim(d_start / xi, 0.0) as i64;
+    let mut i_end = np - fdim(np as f64, d_end / xi) as i64;
+    if i_end <= i_start {
+        i_start = fdim(i_start as f64, 1.0) as i64;
+        i_end = np - fdim(np as f64, i_end as f64 + 1.0) as i64;
     }
 
-    let sample_count = (index_end - index_start) as f64;
+    let x_length = (i_end - i_start) as f64;
+    let mut mid_shifted_index = -0.5 * x_length;
+    let mid_shifted_end = i_end as f64 + mid_shifted_index;
 
-    // Centered coordinate system: shift the midpoint to origin for numerical stability
-    let center_offset_i32 = (-0.5 * sample_count) as i32;
-    let center_position = (index_end as f64) + (center_offset_i32 as f64);
-
-    // Initialize sums for least-squares calculation
-    // Start with average of endpoint values
-    let mut sum_elevations = 0.5 * (pfl[index_start + 2] + pfl[index_end + 2]);
-    let mut weighted_sum =
-        0.5 * (pfl[index_start + 2] - pfl[index_end + 2]) * (center_offset_i32 as f64);
-
-    // Accumulate elevation values and weighted values across the sample range
-    let mut current_index = index_start;
-    for iteration in 2..=(sample_count as usize) {
-        current_index += 1;
-        let current_offset = (center_offset_i32 + (iteration as i32)) as f64;
-
-        sum_elevations += pfl[current_index + 2];
-        weighted_sum += pfl[current_index + 2] * current_offset;
+    let at = |index: i64| pfl[(index + 2) as usize];
+    let mut sum_y = 0.5 * (at(i_start) + at(i_end));
+    let mut scaled_sum_y = 0.5 * (at(i_start) - at(i_end)) * mid_shifted_index;
+    let mut index = i_start;
+    let mut i = 2.0;
+    while i <= x_length {
+        index += 1;
+        mid_shifted_index += 1.0;
+        sum_y += at(index);
+        scaled_sum_y += at(index) * mid_shifted_index;
+        i += 1.0;
     }
+    sum_y /= x_length;
+    scaled_sum_y = scaled_sum_y * 12.0 / ((x_length * x_length + 2.0) * x_length);
 
-    // Normalize the sums
-    let mean_elevation = sum_elevations / sample_count;
-
-    // Scale the weighted sum to get the slope
-    // Factor: 12.0 / ((sample_count^2 + 2) * sample_count)
-    let scaled_slope = weighted_sum * 12.0 / ((sample_count * sample_count + 2.0) * sample_count);
-
-    // Calculate intercept and slope for the fitted line
-    let intercept = mean_elevation - scaled_slope * center_position;
-    let slope = mean_elevation + scaled_slope * ((num_points as f64) - center_position);
-
-    (intercept, slope)
+    let fit_y1 = sum_y - scaled_sum_y * mid_shifted_end;
+    let fit_y2 = sum_y + scaled_sum_y * (np as f64 - mid_shifted_end);
+    (fit_y1, fit_y2)
 }
 
 /// Siting criteria for terminal placement.
@@ -297,8 +285,8 @@ pub fn initialize_area(
 /// ```
 /// use itm::math::terrain::find_horizons;
 ///
-/// // Minimal terrain profile: 3 points, 1 km spacing, flat terrain at 0 m.
-/// let pfl = [3.0, 1000.0, 0.0, 0.0, 0.0];
+/// // Minimal terrain profile: 3 intervals (4 points), 1 km spacing, flat terrain at 0 m.
+/// let pfl = [3.0, 1000.0, 0.0, 0.0, 0.0, 0.0];
 /// let h_m = [10.0, 10.0];
 /// let (theta_hzn, d_hzn) = find_horizons(&pfl, 8.5e6, h_m);
 ///
@@ -314,7 +302,7 @@ pub fn find_horizons(pfl: &[f64], a_e: f64, h: [f64; 2]) -> ([f64; 2], [f64; 2])
 
     // Compute terminal elevations including structural heights.
     let z_tx = pfl[2] + h[0];
-    let z_rx = pfl[np + 1] + h[1];
+    let z_rx = pfl[np + 2] + h[1];
 
     // Initial horizon angles assuming line-of-sight. [TN101, Eq 6.15]
     let mut theta_hzn = [
@@ -378,7 +366,8 @@ pub fn find_horizons(pfl: &[f64], a_e: f64, h: [f64; 2]) -> ([f64; 2], [f64; 2])
 /// ```
 /// use itm::math::terrain::compute_delta_h;
 ///
-/// let pfl = [5.0, 1000.0, 0.0, 10.0, 5.0, 12.0, 8.0];
+/// // 5 intervals (6 points), 1 km spacing.
+/// let pfl = [5.0, 1000.0, 0.0, 10.0, 5.0, 12.0, 8.0, 6.0];
 /// let delta_h = compute_delta_h(&pfl, 0.0, 4000.0);
 /// assert!(delta_h >= 0.0);
 /// ```
@@ -408,7 +397,7 @@ pub fn compute_delta_h(pfl: &[f64], d_start: f64, d_end: f64) -> f64 {
     x_start -= i as f64 + 1.0;
 
     for j in 0..n {
-        while x_start > 0.0 && (i + 2) < np {
+        while x_start > 0.0 && (i + 1) < np {
             x_start -= 1.0;
             i += 1;
         }
@@ -472,13 +461,48 @@ pub struct QuickPflResult {
 ///
 /// A `QuickPflResult` with preprocessed path parameters.
 pub fn quick_pfl(pfl: &[f64], gamma_e: f64, h: [f64; 2]) -> QuickPflResult {
-    // minimal, pragmatic implementation used while full profile port is in progress
+    // NTIA's QuickPfl: horizons over the effective earth, terrain irregularity over the part of the path away from
+    // the terminals, and effective heights above a least-squares fit of the terrain near each terminal.
     let d = pfl[0] * pfl[1];
-    let (theta_hzn, d_hzn) = find_horizons(pfl, gamma_e, h);
-    // initialize_area with random siting to derive h_e approximation
-    let site_criteria = [SitingCriteria::Random, SitingCriteria::Random];
-    let (h_e, _d_hzn2, _theta_hzn2) = initialize_area(site_criteria, gamma_e, 0.0, h);
-    let delta_h = compute_delta_h(pfl, 0.0, d);
+    let np = pfl[0] as usize;
+    let a_e = 1.0 / gamma_e;
+    let fdim = |a: f64, b: f64| (a - b).max(0.0);
+
+    let (mut theta_hzn, mut d_hzn) = find_horizons(pfl, a_e, h);
+
+    let d_start = (15.0 * h[0]).min(0.1 * d_hzn[0]);
+    let d_end = d - (15.0 * h[1]).min(0.1 * d_hzn[1]);
+    let delta_h = compute_delta_h(pfl, d_start, d_end);
+
+    let mut h_e = [0.0; 2];
+    if d_hzn[0] + d_hzn[1] > 1.5 * d {
+        // Line of sight: effective heights over the fit, horizons from a smooth earth.
+        let (fit_tx, fit_rx) = linear_least_square_fit(pfl, d_start, d_end);
+        h_e[0] = h[0] + fdim(pfl[2], fit_tx);
+        h_e[1] = h[1] + fdim(pfl[np + 2], fit_rx);
+        let horizon = |h_e: f64| (2.0 * h_e * a_e).sqrt() * (-0.07 * (delta_h / h_e.max(5.0)).sqrt()).exp();
+        for i in 0..2 {
+            d_hzn[i] = horizon(h_e[i]);
+        }
+        let combined = d_hzn[0] + d_hzn[1];
+        if combined <= d {
+            let q = (d / combined).powi(2);
+            for i in 0..2 {
+                h_e[i] *= q;
+                d_hzn[i] = horizon(h_e[i]);
+            }
+        }
+        for i in 0..2 {
+            let q = (2.0 * h_e[i] * a_e).sqrt();
+            theta_hzn[i] = (0.65 * delta_h * (q / d_hzn[i] - 1.0) - 2.0 * h_e[i]) / q;
+        }
+    } else {
+        let (fit_tx, _) = linear_least_square_fit(pfl, d_start, 0.9 * d_hzn[0]);
+        h_e[0] = h[0] + fdim(pfl[2], fit_tx);
+        let (_, fit_rx) = linear_least_square_fit(pfl, d - 0.9 * d_hzn[1], d_end);
+        h_e[1] = h[1] + fdim(pfl[np + 2], fit_rx);
+    }
+
     QuickPflResult {
         theta_hzn,
         d_hzn,
@@ -508,7 +532,8 @@ mod tests {
 
     #[test]
     fn test_find_horizons_flat_profile() {
-        let pfl = [3.0, 1000.0, 0.0, 0.0, 0.0];
+        // Three intervals: four heights.
+        let pfl = [3.0, 1000.0, 0.0, 0.0, 0.0, 0.0];
         let h = [10.0, 10.0];
         let (theta_hzn, d_hzn) = find_horizons(&pfl, 8.5e6, h);
 
@@ -520,7 +545,8 @@ mod tests {
 
     #[test]
     fn test_compute_delta_h_non_negative() {
-        let pfl = [5.0, 1000.0, 0.0, 10.0, 5.0, 12.0, 8.0];
+        // Five intervals: six heights.
+        let pfl = [5.0, 1000.0, 0.0, 10.0, 5.0, 12.0, 8.0, 6.0];
         let delta_h = compute_delta_h(&pfl, 0.0, 4000.0);
         assert!(delta_h >= 0.0);
     }

@@ -31,6 +31,10 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-validation-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Compare with NTIA's C++ (published and generated cases)
+        run: |
+          cargo test --release --test ntia_reference -- --nocapture
+
       - name: Run TLS validation tests
         run: |
           cargo test --test ntia_validation test_area_tls -- --nocapture --test-threads=1

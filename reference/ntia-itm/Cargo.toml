@@ -1,0 +1,9 @@
+[package]
+name = "ntia-itm-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "NTIA's C++ ITM, compiled as the reference this crate's tests compare with. Not part of the library."
+
+[build-dependencies]
+cc = "1"

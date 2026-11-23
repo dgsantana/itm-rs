@@ -73,7 +73,7 @@ pub(crate) fn longley_rice(
     delta_h: f64,
     h: [f64; 2],
     d: f64,
-    _mode: i32,
+    mode: i32,
 ) -> Result<LongleyRiceResult, ItmError> {
     let mut warnings = 0u32;
     // effective earth radius
@@ -133,10 +133,10 @@ pub(crate) fn longley_rice(
     let d_4 = d_3 + 10.0 * ((a_e.powi(2) / f).powf(1.0 / 3.0));
 
     let a_3_db = diffraction_loss(
-        d_3, d_hzn, h_e, z_g, a_e, delta_h, h, 0, theta_los, d_sml, f,
+        d_3, d_hzn, h_e, z_g, a_e, delta_h, h, mode, theta_los, d_sml, f,
     );
     let a_4_db = diffraction_loss(
-        d_4, d_hzn, h_e, z_g, a_e, delta_h, h, 0, theta_los, d_sml, f,
+        d_4, d_hzn, h_e, z_g, a_e, delta_h, h, mode, theta_los, d_sml, f,
     );
 
     let m_d = (a_4_db - a_3_db) / (d_4 - d_3);
@@ -164,13 +164,13 @@ pub(crate) fn longley_rice(
         let a_sml_db = d_sml * m_d + a_d0;
 
         let mut d_0 = 0.04 * f * h_e[0] * h_e[1];
-        let d_1: f64;
-        if a_d0 >= 0.0 {
+        
+        let d_1: f64 = if a_d0 >= 0.0 {
             d_0 = d_0.min(0.5 * d_ml);
-            d_1 = d_0 + 0.25 * (d_ml - d_0);
+            d_0 + 0.25 * (d_ml - d_0)
         } else {
-            d_1 = (-a_d0 / m_d).max(0.25 * d_ml);
-        }
+            (-a_d0 / m_d).max(0.25 * d_ml)
+        };
 
         let a_1_db = line_of_sight_loss(d_1, h_e, z_g, delta_h, m_d, a_d0, d_sml, f);
 
@@ -231,7 +231,7 @@ pub(crate) fn longley_rice(
 
         let (m_s, a_s0_db, d_x_m) = if a5_db < 1000.0 {
             let m_s = (a6_db - a5_db) / 200e3;
-            let mut d_x = d_ml.max(d_ml + 1.088 * (a_e.powi(2) / f).powf(1.0 / 3.0) * f.ln().abs());
+            let mut d_x = d_sml.max(d_ml + 1.088 * (a_e.powi(2) / f).powf(1.0 / 3.0) * f.ln());
             d_x = d_x.max((a5_db - a_d0 - m_s * d_5) / (m_d - m_s));
             let a_s0 = (m_d - m_s) * d_x + a_d0;
             (m_s, a_s0, d_x)

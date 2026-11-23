@@ -161,7 +161,6 @@ fn test_area_tls_cr_equivalent_params() {
 /// Our implementation matches current NTIA C++ source exactly.
 /// See NTIA issue [#25](https://github.com/NTIA/itm/issues/25): reference test outputs cannot be reproduced by current code.
 #[test]
-#[ignore = "NTIA reference test files from older ITM version (see NTIA issue #25)"]
 fn test_area_cr_ntia_reference_d10km() {
     let test_cases = [
         (50.0, 147.0), // confidence 50%
@@ -207,7 +206,6 @@ fn test_area_cr_ntia_reference_d10km() {
 ///
 /// NOTE: NTIA reference test files from older ITM version (see NTIA issue #25).
 #[test]
-#[ignore = "NTIA reference test files from older ITM version (see NTIA issue #25)"]
 fn test_area_cr_ntia_reference_long_distances() {
     let test_cases = [
         // (distance_km, confidence, expected_loss)
@@ -277,7 +275,7 @@ fn parse_terrain_profile(csv: &str) -> Vec<f64> {
 ///
 /// NOTE: Large discrepancy consistent with NTIA issue #25.
 #[test]
-#[ignore = "NTIA reference test files from older ITM version (see NTIA issue #25)"]
+#[ignore = "cmd_examples o_p2pcr.txt's intermediate values predate NTIA's current C++ (the loss, 114.536 dB, still agrees); ntia_reference.rs compares with the current C++"]
 fn test_p2p_cr_ntia_reference() {
     let pfl_csv = include_str!("fixtures/pfl.txt");
     let pfl = parse_terrain_profile(pfl_csv);
@@ -358,7 +356,7 @@ fn test_p2p_cr_ntia_reference() {
 ///
 /// NOTE: Reference test files from older ITM version (see NTIA issue #25).
 #[test]
-#[ignore = "NTIA reference test files from older ITM version (see NTIA issue #25)"]
+#[ignore = "cmd_examples o_p2pcr_tbl.txt predates NTIA's current C++, which gives up to 0.22 dB more (129.418 for 129.2); ntia_reference.rs compares with the current C++"]
 fn test_p2p_cr_ntia_reference_table() {
     let pfl_csv = include_str!("fixtures/pfl.txt");
     let pfl = parse_terrain_profile(pfl_csv);

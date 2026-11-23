@@ -56,7 +56,7 @@ Refer to the following documentation for integration details:
 This project uses GitHub Actions for continuous integration and validation:
 
 - **CI Workflow**: Tests on Windows, Linux, and macOS with stable and beta Rust toolchains
-- **NTIA Validation**: Automated testing against NTIA reference implementation outputs  
+- **NTIA Validation**: every case compared with NTIA's C++, built as the tests' reference (`tests/ntia_reference.rs`): NTIA's published examples and 1,000 generated cases per mode within 0.1 dB, warnings equal  
 - **Security Audit**: Daily dependency vulnerability scanning with cargo-audit and cargo-deny
 - **Code Coverage**: Automated coverage reports via Codecov
 - **Release Automation**: Automatic cross-platform builds and crates.io publishing on version tags
@@ -69,7 +69,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gu
 
 **Before submitting a PR:**
 1. Run `cargo test --all` to ensure all tests pass
-2. Run `cargo test --test ntia_validation` to validate against NTIA reference
+2. Run `cargo test --release --test ntia_reference` to compare with NTIA's C++ (needs a C++ compiler)
 3. Run `cargo fmt` and `cargo clippy` to maintain code quality
 4. Add tests for new functionality
 

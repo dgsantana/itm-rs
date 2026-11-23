@@ -82,23 +82,45 @@ impl fmt::Display for ItmError {
     }
 }
 
-/// Warning bitmask constants (u32).
+/// `LongleyRice`'s mode for point-to-point predictions (NTIA's `MODE__P2P`).
+pub const MODE_P2P: i32 = 0;
+/// `LongleyRice`'s mode for area predictions (NTIA's `MODE__AREA`).
+pub const MODE_AREA: i32 = 1;
+
+/// Warning bitmask constants (u32), with NTIA's values (`Warnings.h`), so a mask reads the same in both.
 pub mod warnings {
+    /// No warning.
     pub const NO_WARNINGS: u32 = 0;
-    pub const WARN_TX_TERMINAL_HEIGHT: u32 = 1 << 0;
-    pub const WARN_RX_TERMINAL_HEIGHT: u32 = 1 << 1;
-    pub const WARN_FREQUENCY: u32 = 1 << 2;
-    pub const WARN_TX_HORIZON_ANGLE: u32 = 1 << 3;
-    pub const WARN_RX_HORIZON_ANGLE: u32 = 1 << 4;
-    pub const WARN_TX_HORIZON_DISTANCE_1: u32 = 1 << 5;
-    pub const WARN_RX_HORIZON_DISTANCE_1: u32 = 1 << 6;
-    pub const WARN_TX_HORIZON_DISTANCE_2: u32 = 1 << 7;
-    pub const WARN_RX_HORIZON_DISTANCE_2: u32 = 1 << 8;
-    pub const WARN_SURFACE_REFRACTIVITY: u32 = 1 << 9;
-    pub const WARN_PATH_DISTANCE_TOO_SMALL_1: u32 = 1 << 10;
-    pub const WARN_PATH_DISTANCE_TOO_SMALL_2: u32 = 1 << 11;
-    pub const WARN_PATH_DISTANCE_TOO_BIG_1: u32 = 1 << 12;
-    pub const WARN_PATH_DISTANCE_TOO_BIG_2: u32 = 1 << 13;
+    /// The transmitter's height is near its limits.
+    pub const WARN_TX_TERMINAL_HEIGHT: u32 = 0x0001;
+    /// The receiver's height is near its limits.
+    pub const WARN_RX_TERMINAL_HEIGHT: u32 = 0x0002;
+    /// The frequency is near its limits.
+    pub const WARN_FREQUENCY: u32 = 0x0004;
+    /// The path distance is near its upper limit.
+    pub const WARN_PATH_DISTANCE_TOO_BIG_1: u32 = 0x0008;
+    /// The path distance is large: care must be taken with the result.
+    pub const WARN_PATH_DISTANCE_TOO_BIG_2: u32 = 0x0010;
+    /// The path distance is near its lower limit.
+    pub const WARN_PATH_DISTANCE_TOO_SMALL_1: u32 = 0x0020;
+    /// The path distance is small: care must be taken with the result.
+    pub const WARN_PATH_DISTANCE_TOO_SMALL_2: u32 = 0x0040;
+    /// The transmitter's horizon angle is large: small-angle approximations could break down.
+    pub const WARN_TX_HORIZON_ANGLE: u32 = 0x0080;
+    /// The receiver's horizon angle is large: small-angle approximations could break down.
+    pub const WARN_RX_HORIZON_ANGLE: u32 = 0x0100;
+    /// The transmitter's horizon distance is under a tenth of the smooth earth's.
+    pub const WARN_TX_HORIZON_DISTANCE_1: u32 = 0x0200;
+    /// The receiver's horizon distance is under a tenth of the smooth earth's.
+    pub const WARN_RX_HORIZON_DISTANCE_1: u32 = 0x0400;
+    /// The transmitter's horizon distance is over three times the smooth earth's.
+    pub const WARN_TX_HORIZON_DISTANCE_2: u32 = 0x0800;
+    /// The receiver's horizon distance is over three times the smooth earth's.
+    pub const WARN_RX_HORIZON_DISTANCE_2: u32 = 0x1000;
+    /// One of the variabilities asked for lies far in the tail of its distribution.
+    pub const WARN_EXTREME_VARIABILITIES: u32 = 0x2000;
+    /// The surface refractivity computed internally is small: care must be taken with the result.
+    pub const WARN_SURFACE_REFRACTIVITY: u32 = 0x4000;
 }
 
 /// Intermediate values structure captured by the Ex variants.
@@ -240,7 +262,8 @@ pub fn itm_area_tls(
 ) -> Result<(f64, u32, IntermediateValues), ItmError> {
     let mut warnings_mask = warnings::NO_WARNINGS;
     // validate
-    match validate_inputs(
+    {
+        let w = validate_inputs(
         h_tx_m,
         h_rx_m,
         climate_idx,
@@ -253,9 +276,8 @@ pub fn itm_area_tls(
         epsilon,
         sigma,
         mdvar,
-    ) {
-        Ok(w) => warnings_mask |= w,
-        Err(e) => return Err(e),
+    )?;
+        warnings_mask |= w
     }
 
     // area-specific validation
@@ -322,7 +344,7 @@ pub fn itm_area_tls(
     // Call Longley-Rice
     let mut warnings_u32 = warnings_mask;
     let lr_result = longley_rice(
-        theta_hzn, f_mhz, z_g, d_hzn_m, h_e_m, gamma_e, n_s, delta_h_m, h_meter, d_m, 0,
+        theta_hzn, f_mhz, z_g, d_hzn_m, h_e_m, gamma_e, n_s, delta_h_m, h_meter, d_m, MODE_AREA,
     )?;
     let a_ref_db = lr_result.a_ref;
     warnings_u32 |= lr_result.warnings;
@@ -445,20 +467,19 @@ pub fn itm_p2p_tls(
     ) {
         Ok(w) => {
             // Continue
-            let mut inter = IntermediateValues::default();
-            // Use QuickPfl-like helper (delegate to extracted module)
-            let q_pfl = crate::math::terrain::quick_pfl(pfl, 1.0 / 157e-9, [h_tx_m, h_rx_m]);
-            let (theta_hzn, d_hzn_m, h_e_m, delta_h_m, d_m) = (
-                q_pfl.theta_hzn,
-                q_pfl.d_hzn,
-                q_pfl.h_e,
-                q_pfl.delta_h,
-                q_pfl.d,
-            );
-            // initialize point-to-point
+            let mut inter = IntermediateValues {
+                d_km: pfl[0] * pfl[1] / 1000.0,
+                ..Default::default()
+            };
+
+            // The average height of the path, leaving out the first and last 10 %, sets the surface refractivity
+            // and with it the effective earth's curvature, as NTIA's ITM_P2P_TLS_Ex does.
+            let np = pfl[0] as usize;
+            let p10 = (0.1 * np as f64) as usize;
+            let h_sys_m = pfl[p10 + 2..=np - p10 + 2].iter().sum::<f64>() / (np - 2 * p10 + 1) as f64;
             let (z_g, gamma_e, n_s) = initialize_point_to_point(
                 f_mhz,
-                0.0,
+                h_sys_m,
                 n_0,
                 if pol_idx == 1 {
                     crate::math::propagation::Polarization::Vertical
@@ -467,6 +488,14 @@ pub fn itm_p2p_tls(
                 },
                 epsilon,
                 sigma,
+            );
+            let q_pfl = crate::math::terrain::quick_pfl(pfl, gamma_e, [h_tx_m, h_rx_m]);
+            let (theta_hzn, d_hzn_m, h_e_m, delta_h_m, d_m) = (
+                q_pfl.theta_hzn,
+                q_pfl.d_hzn,
+                q_pfl.h_e,
+                q_pfl.delta_h,
+                q_pfl.d,
             );
             let mut warnings = w;
             let lr_result = crate::math::longley_rice::longley_rice(
@@ -480,7 +509,7 @@ pub fn itm_p2p_tls(
                 delta_h_m,
                 [h_tx_m, h_rx_m],
                 d_m,
-                0,
+                MODE_P2P,
             )?;
             let a_ref_db = lr_result.a_ref;
             warnings |= lr_result.warnings;
@@ -577,14 +606,14 @@ fn climate_from_idx(idx_one_based: i32) -> Result<Climate, ItmError> {
 
 /// Convert mdvar integer into VariabilityMode, preserving common encodings.
 fn mdvar_to_mode(mdvar: i32) -> Result<VariabilityMode, ItmError> {
-    // Simplified mapping: 0 -> Broadcast, 1 -> Mobile, 2 -> Accidental, 3 -> SingleMessage
-    // Extended encodings (+10/+20) handled elsewhere in variability module; here we only map base mode.
+    // NTIA's numbering (Enums.h): 0 single message, 1 accidental, 2 mobile, 3 broadcast. The +10 (no location
+    // variability) and +20 (no situation variability) flags are read by the callers.
     match mdvar % 10 {
-        0 => Ok(VariabilityMode::Broadcast),
-        1 => Ok(VariabilityMode::Mobile),
-        2 => Ok(VariabilityMode::Accidental),
-        3 => Ok(VariabilityMode::SingleMessage),
-        _ => Ok(VariabilityMode::Broadcast),
+        0 => Ok(VariabilityMode::SingleMessage),
+        1 => Ok(VariabilityMode::Accidental),
+        2 => Ok(VariabilityMode::Mobile),
+        3 => Ok(VariabilityMode::Broadcast),
+        _ => Err(ItmError::ErrorMdvar),
     }
 }
 

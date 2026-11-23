@@ -21,6 +21,10 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 num-complex = "0.4"
 rayon = "1.11"
 
+[dev-dependencies]
+# NTIA's C++ ITM, the reference the tests compare with; never part of the library.
+ntia-itm-reference = { path = "reference/ntia-itm" }
+
 [features]
 default = ["ffi"]
 ffi = []

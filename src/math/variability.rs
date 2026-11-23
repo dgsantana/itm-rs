@@ -46,8 +46,8 @@ pub enum VariabilityMode {
 
 /// Warning flags returned by variability calculations.
 pub mod variability_warnings {
-    /// Extreme variability quantiles detected (|z| > 3.10).
-    pub const EXTREME_VARIABILITIES: u32 = 1 << 0;
+    /// Extreme variability quantiles detected (|z| > 3.10): NTIA's `WARN__EXTREME_VARIABILITIES`.
+    pub const EXTREME_VARIABILITIES: u32 = crate::math::itm::warnings::WARN_EXTREME_VARIABILITIES;
 }
 
 /// Curve helper function for TN101v2 Eqn III.69 & III.70.
