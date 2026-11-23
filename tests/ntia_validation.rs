@@ -10,7 +10,8 @@
 //! - o_p2pcr.txt: Point-to-Point CR mode single point test
 //! - o_p2pcr_tbl.txt: Point-to-Point CR mode with table
 //!
-//! Tolerance: ±0.2 dB is considered acceptable for floating point differences
+//! Tolerance: ±0.2 dB against the printed area outputs (NTIA rounds them to 0.1 dB); 0.01 dB and exact intermediate
+//! values against the current C++ for point-to-point.
 
 use itm::math::itm::{itm_area_cr, itm_area_tls, itm_p2p_cr};
 
@@ -138,13 +139,8 @@ fn test_area_tls_cr_equivalent_params() {
     );
     let (a_db, _warnings, _inter) = result.unwrap();
 
-    println!(
-        "TLS with CR-equivalent params (time=90, loc=50, sit=50): {} dB",
-        a_db
-    );
-    println!("NTIA CR reference (reliability=90, confidence=50): 147.0 dB");
-    println!("Our CR wrapper result: ~145.7 dB");
-    println!("Difference from NTIA: {} dB", (a_db - 147.0).abs());
+    // o_areacr_tbl.txt prints 147.0 dB for reliability 90 %, confidence 50 % at 10 km.
+    assert_loss_near(a_db, 147.0, "Area TLS with CR-equivalent parameters");
 }
 /// Test Area CR mode with multiple confidence/reliability values
 /// Reference: o_areacr_tbl.txt
@@ -157,9 +153,6 @@ fn test_area_tls_cr_equivalent_params() {
 ///
 /// Expected losses at d=10km: 147.0, 151.7, 155.9 dB (conf 50, 75, 90)
 ///
-/// NOTE: NTIA reference test files appear to be from older ITM version.
-/// Our implementation matches current NTIA C++ source exactly.
-/// See NTIA issue [#25](https://github.com/NTIA/itm/issues/25): reference test outputs cannot be reproduced by current code.
 #[test]
 fn test_area_cr_ntia_reference_d10km() {
     let test_cases = [
@@ -203,8 +196,6 @@ fn test_area_cr_ntia_reference_d10km() {
 
 /// Test Area CR at longer distances
 /// Reference: o_areacr_tbl.txt
-///
-/// NOTE: NTIA reference test files from older ITM version (see NTIA issue #25).
 #[test]
 fn test_area_cr_ntia_reference_long_distances() {
     let test_cases = [

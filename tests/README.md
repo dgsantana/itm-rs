@@ -11,17 +11,20 @@ warning masks, or both to refuse the inputs:
 - `published_point_to_point_cases_match_ntia`, `published_area_cases_match_ntia`: NTIA's published examples
   (`fixtures/ntia/p2p.csv`, `pfls.csv`, `area.csv`). The C++ reproduces their outputs within 0.05 dB (NTIA rounds
   them), and the port matches the C++.
-- `generated_point_to_point_cases_match_ntia`, `generated_area_cases_match_ntia`: 1,000 deterministic cases per mode
-  across ITM's accepted ranges (profiles of 2 to 1,000 intervals, heights, frequencies from 20 MHz to 20 GHz, every
-  climate, both polarizations, ground constants, refractivity, every variability mode with and without its +10 and +20
-  flags, time, location and situation from 1 to 99 %). A sweep of 20,000 cases per mode agreed when this suite was
-  written.
+- `generated_point_to_point_cases_match_ntia`, `generated_area_cases_match_ntia`: 5,000 deterministic cases per mode
+  across ITM's accepted ranges, log-uniform where a range spans decades so every decade is as well represented
+  (frequencies from 20 MHz to 20 GHz, antenna heights from 0.5 to 3,000 m, profile spacing from 1 m to 1 km, conductivity),
+  with profiles of 2 to 1,000 intervals, every climate, both polarizations, refractivity from 250 to 400 N-units, every
+  variability mode with and without its +10 and +20 flags, and time, location and situation from 1 to 99 %. Besides the
+  loss and the warnings, each case compares the mode of propagation, and two refusals must carry the same error code.
+  A sweep of 50,000 cases per mode agreed when this was written.
 
 These tests caught the port's earlier errors of up to 36 dB in point-to-point and 27 dB in area mode (unfinished
 profile analysis, an off-by-one in the receiver's ground height and in the terrain irregularity's sampling, a
 fractional centre truncated in the least-squares fit, the area mode run as point-to-point in diffraction, the
-crossover distance in troposcatter, the variability modes numbered in reverse, and warning bits that differed from
-NTIA's).
+crossover distance in troposcatter, NTIA's `DIM` ported as an absolute difference, a NaN reference attenuation passed on
+where NTIA's `MAX` turns it to 0, the variability modes numbered in reverse, and warning bits and error codes that
+differed from NTIA's).
 
 ## `ntia_validation.rs`: NTIA's command-line examples
 
@@ -37,4 +40,5 @@ cargo test --release --test ntia_reference
 cargo test --release --test ntia_validation
 ```
 
-The reference crate needs a C++ compiler (MSVC, GCC or Clang, as `cc` finds it).
+The reference crate needs a C++ compiler (MSVC, GCC or Clang, as `cc` finds it); its build compiles copies of NTIA's
+sources with the Windows-only include paths and `__declspec` made portable, leaving the vendored files as NTIA ships them.

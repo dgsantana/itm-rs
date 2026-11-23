@@ -197,7 +197,7 @@ pub(crate) fn longley_rice(
                 khat1 = (a_sml_db - a_0_db - khat2 * q) / (d_sml - d_0);
                 if khat1 < 0.0 {
                     khat1 = 0.0;
-                    khat2 = (a_sml_db - a_0_db).abs() / q;
+                    khat2 = c_dim(a_sml_db, a_0_db) / q;
                     if khat2 == 0.0 {
                         khat1 = m_d;
                     }
@@ -206,7 +206,7 @@ pub(crate) fn longley_rice(
         }
 
         if !flag {
-            khat1 = (a_sml_db - a_1_db).abs() / (d_sml - d_1);
+            khat1 = c_dim(a_sml_db, a_1_db) / (d_sml - d_1);
             khat2 = 0.0;
             if khat1 == 0.0 {
                 khat1 = m_d;
@@ -231,8 +231,10 @@ pub(crate) fn longley_rice(
 
         let (m_s, a_s0_db, d_x_m) = if a5_db < 1000.0 {
             let m_s = (a6_db - a5_db) / 200e3;
-            let mut d_x = d_sml.max(d_ml + 1.088 * (a_e.powi(2) / f).powf(1.0 / 3.0) * f.ln());
-            d_x = d_x.max((a5_db - a_d0 - m_s * d_5) / (m_d - m_s));
+            let d_x = c_max(
+                c_max(d_sml, d_ml + 1.088 * (a_e.powi(2) / f).powf(1.0 / 3.0) * f.ln()),
+                (a5_db - a_d0 - m_s * d_5) / (m_d - m_s),
+            );
             let a_s0 = (m_d - m_s) * d_x + a_d0;
             (m_s, a_s0, d_x)
         } else {
@@ -248,13 +250,23 @@ pub(crate) fn longley_rice(
         }
     }
 
-    if a_ref < 0.0 {
-        a_ref = 0.0;
-    }
+    // NTIA's MAX(A_ref, 0): a NaN reference attenuation (NTIA's smooth-earth diffraction gives one on some short VHF
+    // paths) becomes 0, as it does there.
+    a_ref = c_max(a_ref, 0.0);
 
     Ok(LongleyRiceResult {
         a_ref,
         warnings,
         propmode,
     })
+}
+
+/// NTIA's `MAX(x, y)` macro, `x > y ? x : y`: unlike `f64::max`, a NaN second argument is returned.
+fn c_max(x: f64, y: f64) -> f64 {
+    if x > y { x } else { y }
+}
+
+/// NTIA's `DIM(x, y)` macro, `x > y ? x - y : 0`: the positive difference, never `abs`.
+fn c_dim(x: f64, y: f64) -> f64 {
+    if x > y { x - y } else { 0.0 }
 }

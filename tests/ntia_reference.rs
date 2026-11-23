@@ -8,7 +8,7 @@ use ntia_itm_reference::{Reference, area_tls, p2p_tls};
 /// Agreement asked of the port, decibels; NTIA rounds its published outputs to 0.01 dB.
 const TOLERANCE_DB: f64 = 0.1;
 /// Generated cases per mode.
-const GENERATED: usize = 1000;
+const GENERATED: usize = 5000;
 
 fn rows(csv: &str) -> Vec<Vec<f64>> {
     csv.lines()
@@ -38,26 +38,34 @@ impl Cases {
     fn range(&mut self, low: f64, high: f64) -> f64 {
         low + (high - low) * self.unit()
     }
+    /// Log-uniform between `low` and `high`: as many cases per decade, so VHF and short paths are as present as SHF.
+    fn log_range(&mut self, low: f64, high: f64) -> f64 {
+        self.range(low.ln(), high.ln()).exp()
+    }
     fn pick(&mut self, count: i32) -> i32 {
         (self.unit() * count as f64) as i32
     }
 }
 
-/// Whether the port's result agrees with NTIA's for one case; the reason when it does not.
+/// Whether the port's result agrees with NTIA's for one case: both succeed with losses within `TOLERANCE_DB`, the same
+/// mode of propagation and the same warnings, or both refuse with the same error code. The reason when they do not.
 fn compare(label: &str, port: Result<(f64, u32, itm::math::itm::IntermediateValues), itm::math::itm::ItmError>, reference: Reference) -> Option<String> {
     let reference_ok = reference.code == 0 || reference.code == 1;
     match port {
-        Ok((loss, warnings, _)) if reference_ok => {
+        Ok((loss, warnings, inter)) if reference_ok => {
             let close = (loss - reference.loss_db).abs() <= TOLERANCE_DB;
             let same_warnings = i64::from(warnings) == reference.warnings;
-            (!close || !same_warnings).then(|| {
+            let same_mode = inter.mode == reference.intermediate.mode;
+            (!close || !same_warnings || !same_mode).then(|| {
                 format!(
-                    "{label}: port {loss:.3} dB w{warnings:#x}, NTIA {:.3} dB w{:#x}",
-                    reference.loss_db, reference.warnings
+                    "{label}: port {loss:.3} dB w{warnings:#x} mode {}, NTIA {:.3} dB w{:#x} mode {}",
+                    inter.mode, reference.loss_db, reference.warnings, reference.intermediate.mode
                 )
             })
         }
-        Err(_) if !reference_ok => None,
+        Err(error) if !reference_ok => {
+            (error.code() != reference.code).then(|| format!("{label}: port refused with {}, NTIA with {}", error.code(), reference.code))
+        }
         Ok((loss, _, _)) => Some(format!("{label}: port gave {loss:.3} dB, NTIA refused it (code {})", reference.code)),
         Err(error) => Some(format!("{label}: port refused it ({error:?}), NTIA gave {:.3} dB", reference.loss_db)),
     }
@@ -101,10 +109,11 @@ fn published_area_cases_match_ntia() {
     assert_agrees(failures, "published area");
 }
 
-/// A terrain profile in ITM's form: hills and valleys from a few sine waves, 2 to 1,000 intervals, 10 m to 1 km apart.
+/// A terrain profile in ITM's form: hills and valleys from a few sine waves, 2 to 1,000 intervals, 1 m to 1 km apart
+/// (log-uniform, so short paths are well represented).
 fn generated_profile(cases: &mut Cases) -> Vec<f64> {
     let intervals = 2 + cases.pick(999) as usize;
-    let spacing = cases.range(10.0, 1000.0);
+    let spacing = cases.log_range(1.0, 1000.0);
     let base = cases.range(0.0, 1500.0);
     let waves: Vec<(f64, f64, f64)> = (0..3).map(|_| (cases.range(0.0, 300.0), cases.range(0.2, 6.0), cases.range(0.0, 6.3))).collect();
     let mut pfl = vec![intervals as f64, spacing];
@@ -121,11 +130,11 @@ fn generated_point_to_point_cases_match_ntia() {
     let mut failures = Vec::new();
     for index in 0..GENERATED {
         let pfl = generated_profile(&mut cases);
-        let (h_tx, h_rx) = (cases.range(0.5, 3000.0_f64.min(200.0)), cases.range(0.5, 200.0));
-        let f_mhz = cases.range(20.0, 20_000.0);
+        let (h_tx, h_rx) = (cases.log_range(0.5, 3000.0), cases.log_range(0.5, 3000.0));
+        let f_mhz = cases.log_range(20.0, 20_000.0);
         let climate = 1 + cases.pick(7);
         let pol = cases.pick(2);
-        let (epsilon, sigma) = (cases.range(4.0, 80.0), cases.range(0.001, 5.0));
+        let (epsilon, sigma) = (cases.range(4.0, 80.0), cases.log_range(0.001, 5.0));
         let n_0 = cases.range(250.0, 400.0);
         let mdvar = cases.pick(4) + [0, 10, 20, 30][cases.pick(4) as usize];
         let (time, location, situation) = (cases.range(1.0, 99.0), cases.range(1.0, 99.0), cases.range(1.0, 99.0));
@@ -141,15 +150,15 @@ fn generated_area_cases_match_ntia() {
     let mut cases = Cases(0x0A2E_A5EE_D000_1717);
     let mut failures = Vec::new();
     for index in 0..GENERATED {
-        let (h_tx, h_rx) = (cases.range(0.5, 200.0), cases.range(0.5, 200.0));
+        let (h_tx, h_rx) = (cases.log_range(0.5, 3000.0), cases.log_range(0.5, 3000.0));
         let (tx_site, rx_site) = (cases.pick(3), cases.pick(3));
-        let d_km = cases.range(1.0, 1000.0);
+        let d_km = cases.log_range(1.0, 1000.0);
         let delta_h = cases.range(0.0, 500.0);
         let climate = 1 + cases.pick(7);
         let n_0 = cases.range(250.0, 400.0);
-        let f_mhz = cases.range(20.0, 20_000.0);
+        let f_mhz = cases.log_range(20.0, 20_000.0);
         let pol = cases.pick(2);
-        let (epsilon, sigma) = (cases.range(4.0, 80.0), cases.range(0.001, 5.0));
+        let (epsilon, sigma) = (cases.range(4.0, 80.0), cases.log_range(0.001, 5.0));
         let mdvar = cases.pick(4) + [0, 10, 20, 30][cases.pick(4) as usize];
         let (time, location, situation) = (cases.range(1.0, 99.0), cases.range(1.0, 99.0), cases.range(1.0, 99.0));
         let port = itm_area_tls(

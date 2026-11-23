@@ -72,7 +72,7 @@ extern "C" {
         int32_t pol_idx,     // Polarization (0 = Horizontal, 1 = Vertical)
         double epsilon,      // Earth Dielectric Constant (e.g., 15.0)
         double sigma,        // Earth Conductivity (e.g., 0.005)
-        int32_t mdvar,       // Variability Mode (0 = Broadcast, 1 = Point-to-Point, 2 = Mobile)
+        int32_t mdvar,       // Variability Mode, NTIA's numbering (0 = Single message, 1 = Accidental, 2 = Mobile, 3 = Broadcast; +10 no location, +20 no situation variability)
         double time_pct,     // Time Reliability % (e.g., 50.0)
         double loc_pct,      // Location Reliability % (e.g., 50.0)
         double sit_pct,      // Situation Confidence % (e.g., 50.0)

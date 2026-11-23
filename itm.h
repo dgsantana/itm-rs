@@ -32,7 +32,7 @@ extern "C" {
  * C-API wrapper for the ITM Area TLS function.
  * All pointers must be valid. Warnings are written to the `warnings` pointer.
  *
- * Returns 0 on success, or an error code > 0 on failure.
+ * Returns 0 on success, or one of NTIA's error codes (1000 to 1022, `Errors.h`) on failure.
  */
 int32_t itm_area_tls_c(
     double h_tx_m,
@@ -75,7 +75,7 @@ int32_t itm_area_tls_c(
  * @param sigma Earth conductivity. Sensible default: 0.005.
  * @param out_radius_m Output pointer for radius in meters.
  *
- * Returns 0 on success, or an error code.
+ * Returns 0 on success, or one of NTIA's error codes (1000 to 1022, `Errors.h`).
  */
 int32_t itm_calculate_signal_radius_c(
     double f_mhz,
@@ -97,7 +97,7 @@ int32_t itm_calculate_signal_radius_c(
  * `pfl_data` must be a valid pointer to an array of `pfl_len` doubles.
  * The array format must match ITM expectations: [N-1, spacing_m, elev_1, elev_2, ... elev_N]
  *
- * Returns 0 on success, or an error code > 0 on failure.
+ * Returns 0 on success, or one of NTIA's error codes (1000 to 1022, `Errors.h`) on failure.
  */
 int32_t itm_p2p_tls_c(
     double h_tx_m,

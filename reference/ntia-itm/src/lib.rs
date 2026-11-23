@@ -103,9 +103,15 @@ pub fn p2p_tls(
     location: f64,
     situation: f64,
 ) -> Reference {
+    // NTIA reads pfl[0] + 3 values; a shorter slice would be read past its end.
+    assert!(
+        pfl.len() >= 2 && pfl[0] >= 0.0 && pfl.len() >= pfl[0] as usize + 3,
+        "a profile of {} values cannot hold the {} points its first value declares",
+        pfl.len(),
+        pfl.first().copied().unwrap_or(0.0) + 1.0
+    );
     let (mut loss_db, mut warnings, mut intermediate) = (0.0, 0 as c_long, Intermediate::default());
-    // SAFETY: `pfl` outlives the call and holds the point count NTIA reads from its first element plus three values;
-    // the out pointers are valid locals.
+    // SAFETY: the assertion above makes `pfl` hold every value NTIA reads; the out pointers are valid locals.
     let code = unsafe {
         itm_p2p_tls_ex(
             h_tx, h_rx, pfl.as_ptr(), climate, n_0, f_mhz, pol, epsilon, sigma, mdvar, time, location, situation, &mut loss_db,
