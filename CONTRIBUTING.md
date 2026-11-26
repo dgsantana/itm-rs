@@ -32,7 +32,7 @@ Thank you for your interest in contributing to ITM-RS! This document provides gu
 
 ### Prerequisites
 - Rust 1.85+ (with 2024 edition support)
-- C compiler (MSVC on Windows, GCC/Clang on Linux/macOS) for FFI testing
+- C++ compiler (MSVC on Windows, GCC/Clang on Linux/macOS): the tests build NTIA's C++ as their reference
 
 ### Building
 ```bash
@@ -46,8 +46,9 @@ cargo test
 # Build C static library
 cargo build --release
 
-# Run validation tests
-cargo test --test ntia_validation
+# Run the comparisons with NTIA's C++
+cargo test --release --test ntia_reference
+cargo test --release --test ntia_validation
 ```
 
 ## Code Style
@@ -68,9 +69,9 @@ cargo test --test ntia_validation
 - Document expected vs actual results with tolerances
 
 ### Validation Tests  
-- See [tests/ntia_validation.rs](tests/ntia_validation.rs) for examples
-- Use ±0.2 dB tolerance for path loss comparisons
-- Note known issues with older NTIA reference files
+- See [tests/README.md](tests/README.md) for what each suite checks
+- Compare with NTIA's C++ (`tests/ntia_reference.rs`): losses within 0.1 dB, equal warnings, mode and error codes
+- Against NTIA's printed outputs, which are rounded: ±0.2 dB for area mode, as `tests/ntia_validation.rs` does
 
 ## Submitting Changes
 

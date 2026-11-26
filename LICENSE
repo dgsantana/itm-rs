@@ -19,19 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This software is a Rust implementation of the ITS Irregular Terrain Model (ITM),
-originally developed by the National Telecommunications and Information
-Administration (NTIA). The original ITM software is in the public domain as a
-work of the U.S. Federal Government.
-
-Original ITM References:
-- https://github.com/NTIA/itm
-- G.A. Hufford, A.G. Longley, W.A. Kissick, "A Guide to the Use of the ITS 
-  Irregular Terrain Model in the Area Prediction Mode," NTIA Technical Report 
-  TR-82-100, April 1982.
-- A.G. Longley and P.L. Rice, "Prediction of Tropospheric Radio Transmission 
-  Loss Over Irregular Terrain: A Computer Method - 1968," NTIA Technical 
-  Report ERL 79-ITS 67, July 1968.

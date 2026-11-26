@@ -14,8 +14,8 @@
 //! ## Original Work Attribution
 //!
 //! This is a derivative work of the ITS Irregular Terrain Model originally developed by
-//! the National Telecommunications and Information Administration (NTIA). The original
-//! ITM software is in the public domain as a work of the U.S. Federal Government.
+//! the National Telecommunications and Information Administration (NTIA). NTIA's software
+//! is not subject to copyright protection in the United States (17 USC 105); see `NOTICE`.
 //!
 //! Original authors: Anita Longley and Phil Rice
 //!

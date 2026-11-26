@@ -15,7 +15,6 @@ repository-code: "https://github.com/dgsantana/itm-rs"
 url: "https://github.com/dgsantana/itm-rs"
 license: MIT
 version: 2.0.0
-date-released: 2026-03-02
 
 references:
   - type: report

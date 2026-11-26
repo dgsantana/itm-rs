@@ -10,7 +10,7 @@ A high-performance, scientifically-validated Rust implementation of the **ITS Ir
 
 ## Overview
 
-`itm-longley-rice` provides a modern, memory-safe port of the standard atmospheric propagation model used for frequencies between 20 MHz and 20 GHz. This implementation is based directly on the **original NTIA C++ source code (v1.3)**, ensuring functional parity with the established scientific reference while providing the safety and performance benefits of the Rust ecosystem.
+`itm-longley-rice` provides a modern, memory-safe port of the standard atmospheric propagation model used for frequencies between 20 MHz and 20 GHz. This implementation is based directly on **NTIA's C++ source code** (commit `183ad95`, release v1.4 plus 43 commits; the sources are unchanged since), ensuring functional parity with the established scientific reference while providing the safety and performance benefits of the Rust ecosystem.
 
 This library is designed for integration into large-scale simulations, including **Unreal Engine 5** and other C++ environments, via a robust [C-API](C_API_USAGE.md).
 
@@ -56,7 +56,7 @@ Refer to the following documentation for integration details:
 This project uses GitHub Actions for continuous integration and validation:
 
 - **CI Workflow**: Tests on Windows, Linux, and macOS with stable and beta Rust toolchains
-- **NTIA Validation**: every case compared with NTIA's C++, built as the tests' reference (`tests/ntia_reference.rs`): NTIA's published examples and 1,000 generated cases per mode within 0.1 dB, warnings equal  
+- **NTIA Validation**: every case compared with NTIA's C++, built as the tests' reference (`tests/ntia_reference.rs`): NTIA's published examples and 5,000 generated cases per mode within 0.1 dB, warnings equal  
 - **Security Audit**: Daily dependency vulnerability scanning with cargo-audit and cargo-deny
 - **Code Coverage**: Automated coverage reports via Codecov
 - **Release Automation**: Automatic cross-platform builds and crates.io publishing on version tags
@@ -79,7 +79,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ### Original ITM License
 
-The original ITS Irregular Terrain Model developed by NTIA is in the **public domain** as a work of the U.S. Federal Government (Title 15 USC § 105). This Rust implementation is a derivative work that maintains compatibility with the original while adding modern safety guarantees and performance optimizations.
+NTIA's ITS Irregular Terrain Model software was developed by employees of the U.S. Government. It is not subject to copyright protection in the United States (Title 17 USC § 105), and NTIA's terms grant the rights to copy, modify and distribute it elsewhere; they are in `reference/ntia-itm/LICENSE.md`. This Rust implementation is a derivative work; `NOTICE` states how it changes NTIA's software, as those terms ask. The MIT License covers the Rust code, not NTIA's files under `reference/ntia-itm/`.
 
 ### Attribution
 

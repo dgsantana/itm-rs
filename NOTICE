@@ -1,0 +1,14 @@
+This software is a derivative work of the ITS Irregular Terrain Model (ITM) software developed by the National
+Telecommunications and Information Administration (NTIA), Institute for Telecommunication Sciences:
+https://github.com/NTIA/itm, commit 183ad95bd813a8be11009df396e1c631356864b2 (release v1.4 plus 43 commits).
+
+Works of NTIA employees are not subject to copyright protection within the United States (Title 17 United States
+Code Section 105). NTIA's software disclaimer and release terms are at https://github.com/NTIA/itm/blob/master/LICENSE.md
+and, in this repository, in reference/ntia-itm/LICENSE.md.
+
+Changes, February to November 2026: NTIA's C++ model is translated to Rust, with the same computation, checked against
+NTIA's C++ in this crate's tests. Added: Rust types for inputs and results, a C API (the `ffi` feature, `itm.h`), and a
+parallel search for the distance at which a signal falls below a threshold.
+
+The files under reference/ntia-itm/cpp and reference/ntia-itm/include are NTIA's, unmodified, and are not covered by
+this crate's MIT licence. They are used only by this crate's tests.

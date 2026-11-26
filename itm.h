@@ -4,8 +4,8 @@
 // ITM-RS C API Header
 // Rust implementation of the ITS Irregular Terrain Model (ITM)
 //
-// This is a derivative work of the original ITM developed by NTIA,
-// which is in the public domain as a work of the U.S. Federal Government.
+// This is a derivative work of the original ITM developed by NTIA, which is
+// not subject to copyright protection in the United States (17 USC 105); see NOTICE.
 //
 // See LICENSE file for details.
 

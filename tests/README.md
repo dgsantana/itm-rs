@@ -4,7 +4,7 @@ Two suites check the port against NTIA's C++ Irregular Terrain Model.
 
 ## `ntia_reference.rs`: against NTIA's current C++
 
-`reference/ntia-itm` is NTIA's C++ (https://github.com/NTIA/itm, public domain), compiled by `cc` as a dev-dependency
+`reference/ntia-itm` is NTIA's C++ (https://github.com/NTIA/itm, under NTIA's terms), compiled by `cc` as a dev-dependency
 only. The tests call it beside the port and require, per case, both to succeed with losses within 0.1 dB and equal
 warning masks, or both to refuse the inputs:
 
